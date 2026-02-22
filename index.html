@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="appHtml">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ALTANTAWY Comparison Tool — Ponsiana Hotel</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#07090f; --surface:#0f1623; --surface2:#16202e; --border:#243347;
+    --accent:#00c8ff; --green:#00e676; --red:#ff4757; --yellow:#ffd600; --purple:#b388ff;
+    --text:#dde6f0; --muted:#5a7490; --muted2:#3d5166;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;min-height:100vh;padding:20px;}
+  header{text-align:center;margin-bottom:24px;padding:24px 0 18px;border-bottom:1px solid var(--border);position:relative;}
+  header::after{content:'';position:absolute;bottom:-1px;left:50%;transform:translateX(-50%);width:80px;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);}
+  h1{font-size:1.6rem;font-weight:700;color:#fff;} h1 span{color:var(--accent);}
+  .subtitle{color:var(--muted);font-size:0.78rem;margin-top:4px;font-family:'IBM Plex Mono',monospace;}
+  .top-actions{display:flex;justify-content:flex-end;gap:10px;margin-bottom:16px;}
+  .btn-clear{background:transparent;border:1px solid var(--red);color:var(--red);border-radius:7px;padding:7px 16px;font-size:0.8rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;}
+  .btn-clear:hover{background:rgba(255,71,87,.12);}
+  .upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
+  @media(max-width:700px){.upload-grid{grid-template-columns:1fr;}}
+  .upload-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;}
+  .card-label{font-size:0.68rem;font-family:'IBM Plex Mono',monospace;color:var(--accent);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:5px;}
+  .card-title{font-size:0.92rem;font-weight:700;color:#fff;margin-bottom:10px;}
+  .file-slots{display:flex;flex-direction:column;gap:7px;}
+  .file-slot{background:var(--surface2);border:1.5px dashed var(--border);border-radius:8px;padding:9px 12px;display:flex;align-items:center;gap:9px;transition:all .2s;cursor:pointer;}
+  .file-slot:hover,.file-slot.dragover{border-color:var(--accent);background:rgba(0,200,255,.04);}
+  .file-slot input[type="file"]{display:none;}
+  .slot-icon{font-size:1.1rem;flex-shrink:0;}
+  .slot-info{flex:1;min-width:0;}
+  .slot-label{font-size:0.72rem;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+  .slot-name{font-size:0.75rem;color:var(--accent);font-family:'IBM Plex Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;display:none;}
+  .slot-name.visible{display:block;}
+  .remove-slot{background:transparent;border:none;color:var(--muted2);cursor:pointer;font-size:.9rem;padding:2px 4px;border-radius:4px;transition:color .2s;flex-shrink:0;}
+  .remove-slot:hover{color:var(--red);}
+  .add-file-btn{background:transparent;border:1px dashed var(--muted2);color:var(--muted);border-radius:7px;padding:6px 10px;font-size:0.74rem;cursor:pointer;transition:all .2s;margin-top:5px;font-family:inherit;display:flex;align-items:center;gap:5px;}
+  .add-file-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .paste-lbl{font-size:0.68rem;color:var(--muted);margin:8px 0 4px;}
+  textarea.paste-box{width:100%;height:60px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 9px;font-size:0.73rem;font-family:'IBM Plex Mono',monospace;resize:vertical;outline:none;transition:border-color .2s;}
+  textarea.paste-box:focus{border-color:var(--accent);}
+  textarea.paste-box::placeholder{color:var(--muted2);}
+  .compare-btn{display:block;width:100%;padding:13px;background:var(--accent);color:#000;border:none;border-radius:10px;font-size:0.93rem;font-weight:700;cursor:pointer;letter-spacing:.5px;transition:all .2s;font-family:inherit;margin-bottom:20px;}
+  .compare-btn:hover{background:#33d4ff;transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,200,255,.25);}
+  /* Stats — clickable */
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-bottom:16px;}
+  @media(max-width:580px){.stats{grid-template-columns:repeat(3,1fr);}}
+  .stat{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;text-align:center;cursor:pointer;transition:all .2s;user-select:none;}
+  .stat:hover{border-color:var(--muted);transform:translateY(-1px);}
+  .stat.active-stat{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);}
+  .s-total.active-stat{border-color:var(--accent);}
+  .s-match.active-stat{border-color:var(--green);box-shadow:0 0 0 1px var(--green);}
+  .s-diff.active-stat{border-color:var(--yellow);box-shadow:0 0 0 1px var(--yellow);}
+  .s-nohotel.active-stat{border-color:var(--red);box-shadow:0 0 0 1px var(--red);}
+  .s-nosys.active-stat{border-color:var(--purple);box-shadow:0 0 0 1px var(--purple);}
+  .stat .num{font-size:1.45rem;font-weight:700;font-family:'IBM Plex Mono',monospace;}
+  .stat .lbl{font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-top:2px;}
+  .s-total .num{color:var(--accent);} .s-match .num{color:var(--green);} .s-diff .num{color:var(--yellow);}
+  .s-nohotel .num{color:var(--red);} .s-nosys .num{color:var(--purple);}
+  /* Filter bar hidden (stats are now filters) */
+  .filter-bar{display:none;}
+  .search-box{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:0.81rem;margin-bottom:11px;outline:none;transition:border-color .2s;}
+  .search-box:focus{border-color:var(--accent);}
+  .search-box::placeholder{color:var(--muted2);}
+  /* Search results counter */
+  .search-count{font-size:0.72rem;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-bottom:8px;display:none;}
+  .search-count.visible{display:block;}
+  .section-hdr{display:flex;align-items:center;gap:9px;margin:18px 0 8px;padding-bottom:7px;border-bottom:1px solid var(--border);}
+  .section-hdr h3{font-size:0.78rem;font-family:'IBM Plex Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;}
+  .sdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .sd-match{background:var(--green);} .sd-diff{background:var(--yellow);} .sd-nohotel{background:var(--red);} .sd-nosys{background:var(--purple);}
+  .result-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:7px;overflow:hidden;transition:border-color .2s;}
+  .result-item:hover{border-color:#2e4560;}
+  .st-match{border-left:3px solid var(--green);} .st-diff{border-left:3px solid var(--yellow);}
+  .st-nohotel{border-left:3px solid var(--red);} .st-nosys{border-left:3px solid var(--purple);}
+  .result-header{display:flex;align-items:center;gap:9px;padding:9px 13px;cursor:pointer;user-select:none;}
+  .rsv-num{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:0.85rem;color:var(--accent);min-width:76px;}
+  .guest-name{flex:1;font-size:0.83rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .htl-tag{font-size:0.65rem;color:var(--muted);font-family:'IBM Plex Mono',monospace;white-space:nowrap;flex-shrink:0;}
+  .badge{font-size:0.65rem;font-weight:700;padding:3px 8px;border-radius:9px;white-space:nowrap;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.4px;flex-shrink:0;}
+  .bd-match{background:rgba(0,230,118,.15);color:var(--green);} .bd-diff{background:rgba(255,214,0,.15);color:var(--yellow);}
+  .bd-nohotel{background:rgba(255,71,87,.15);color:var(--red);} .bd-nosys{background:rgba(179,136,255,.15);color:var(--purple);}
+  .chevron{color:var(--muted);transition:transform .2s;font-size:0.72rem;flex-shrink:0;}
+  .result-item.open .chevron{transform:rotate(180deg);}
+  .result-body{padding:0 13px 11px;border-top:1px solid var(--border);display:none;}
+  .result-item.open .result-body{display:block;}
+  table.ctbl{width:100%;border-collapse:collapse;margin-top:9px;font-size:0.78rem;}
+  .ctbl th{text-align:left;color:var(--muted);font-weight:400;padding:5px 9px;font-family:'IBM Plex Mono',monospace;font-size:0.69rem;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);}
+  .ctbl td{padding:6px 9px;border-bottom:1px solid rgba(36,51,71,.5);}
+  .ctbl tr:last-child td{border-bottom:none;}
+  .v-ok{color:var(--green);font-family:'IBM Plex Mono',monospace;} .v-diff{color:var(--yellow);font-family:'IBM Plex Mono',monospace;font-weight:600;}
+  .alert-msg{font-size:0.79rem;padding:9px 0 2px;font-family:'IBM Plex Mono',monospace;line-height:1.6;}
+  .alert-msg.red{color:var(--red);} .alert-msg.purple{color:var(--purple);}
+  .meta-row{font-size:0.72rem;color:var(--muted);margin-top:7px;} .meta-row span{color:var(--text);}
+  .results-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
+  .results-title{font-size:0.87rem;font-weight:700;color:#fff;font-family:'IBM Plex Mono',monospace;}
+  /* Mismatch summary chip */
+  .mismatch-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(255,214,0,.08);border:1px solid rgba(255,214,0,.3);border-radius:6px;padding:3px 9px;font-size:0.7rem;font-family:'IBM Plex Mono',monospace;color:var(--yellow);cursor:pointer;transition:background .2s;user-select:text;}
+  .mismatch-chip:hover{background:rgba(255,214,0,.15);}
+  .mismatch-chip .copy-icon{font-size:0.65rem;opacity:.7;}
+  /* Export toolbar */
+  .export-bar{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;padding:13px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;}
+  .export-bar-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .export-bar-label{font-size:0.7rem;font-family:'IBM Plex Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-right:4px;white-space:nowrap;}
+  .export-btn{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:0.78rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;}
+  .export-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .export-btn.excel:hover{border-color:var(--green);color:var(--green);}
+  .export-btn.img:hover{border-color:var(--purple);color:var(--purple);}
+  /* Export section checkboxes */
+  .export-sections-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--border);}
+  .export-sections-label{font-size:0.65rem;font-family:'IBM Plex Mono',monospace;color:var(--muted2);text-transform:uppercase;letter-spacing:.7px;white-space:nowrap;}
+  .export-chk-group{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;}
+  .export-chk-group input[type="checkbox"]{display:none;}
+  .chk-box{width:15px;height:15px;border-radius:4px;border:1.5px solid var(--border);background:var(--surface2);display:inline-flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;}
+  .export-chk-group input:checked + .chk-box{border-color:var(--accent);background:rgba(0,200,255,.15);}
+  .export-chk-group input:checked + .chk-box::after{content:'✓';font-size:0.65rem;color:var(--accent);font-weight:700;line-height:1;}
+  .chk-label{font-size:0.72rem;font-family:'IBM Plex Mono',monospace;color:var(--muted);transition:color .2s;}
+  .export-chk-group:hover .chk-label{color:var(--text);}
+  .export-chk-group:hover .chk-box{border-color:var(--muted);}
+  .chk-total .export-chk-group input:checked + .chk-box{border-color:var(--accent);background:rgba(0,200,255,.15);}
+  .chk-match input:checked + .chk-box{border-color:var(--green)!important;background:rgba(0,230,118,.15)!important;}
+  .chk-match input:checked + .chk-box::after{color:var(--green)!important;}
+  .chk-nohotel input:checked + .chk-box{border-color:var(--red)!important;background:rgba(255,71,87,.15)!important;}
+  .chk-nohotel input:checked + .chk-box::after{color:var(--red)!important;}
+  .chk-nosys input:checked + .chk-box{border-color:var(--purple)!important;background:rgba(179,136,255,.15)!important;}
+  .chk-nosys input:checked + .chk-box::after{color:var(--purple)!important;}
+  .chk-diff input:checked + .chk-box{border-color:var(--yellow)!important;background:rgba(255,214,0,.15)!important;}
+  .chk-diff input:checked + .chk-box::after{color:var(--yellow)!important;}
+
+  /* ── Smart multi-file drop zone ── */
+  .smart-drop-zone{background:var(--surface);border:2px dashed var(--border);border-radius:14px;padding:0;margin-bottom:16px;transition:all .25s;position:relative;overflow:hidden;}
+  .smart-drop-zone.dragover{border-color:var(--accent);background:rgba(0,200,255,.05);}
+  .drop-inner{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;text-align:center;}
+  .drop-icon{font-size:2.2rem;margin-bottom:10px;}
+  .drop-title{font-size:0.92rem;font-weight:600;color:var(--text);margin-bottom:6px;}
+  .drop-link{color:var(--accent);cursor:pointer;text-decoration:underline;}
+  .drop-sub{font-size:0.75rem;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-bottom:8px;}
+  .drop-formats{font-size:0.68rem;color:var(--muted2);font-family:'IBM Plex Mono',monospace;border:1px solid var(--border);border-radius:20px;padding:3px 12px;display:inline-block;}
+  .file-tags-wrap{padding:14px 16px 10px;}
+  .file-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+  .file-tag{display:flex;align-items:center;gap:7px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:0.74rem;font-family:'IBM Plex Mono',monospace;}
+  .file-tag.hotel-tag{border-color:rgba(0,200,255,.4);background:rgba(0,200,255,.06);}
+  .file-tag.system-tag{border-color:rgba(0,230,118,.4);background:rgba(0,230,118,.06);}
+  .file-tag.unknown-tag{border-color:rgba(255,214,0,.4);background:rgba(255,214,0,.06);}
+  .tag-type{font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;padding:2px 5px;border-radius:4px;}
+  .hotel-tag .tag-type{background:rgba(0,200,255,.2);color:var(--accent);}
+  .system-tag .tag-type{background:rgba(0,230,118,.2);color:var(--green);}
+  .unknown-tag .tag-type{background:rgba(255,214,0,.2);color:var(--yellow);}
+  .tag-name{color:var(--text);max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tag-rm{background:transparent;border:none;color:var(--muted2);cursor:pointer;font-size:.85rem;padding:0 2px;line-height:1;}
+  .tag-rm:hover{color:var(--red);}
+  .add-more-btn{background:transparent;border:1px dashed var(--muted2);color:var(--muted);border-radius:7px;padding:5px 12px;font-size:0.74rem;cursor:pointer;transition:all .2s;font-family:inherit;}
+  .add-more-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .type-select{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:2px 6px;font-size:0.72rem;font-family:'IBM Plex Mono',monospace;cursor:pointer;margin-left:4px;}
+
+  /* Arabic / RTL support */
+  html[lang="ar"] body { font-family: 'Cairo', sans-serif; direction: rtl; }
+  html[lang="ar"] .subtitle, html[lang="ar"] .card-label, html[lang="ar"] .slot-label,
+  html[lang="ar"] .results-title, html[lang="ar"] .section-hdr h3 { font-family: 'Cairo', sans-serif; }
+  html[lang="ar"] .upload-grid { direction: rtl; }
+  html[lang="ar"] .top-actions { flex-direction: row-reverse; }
+  html[lang="ar"] .result-header { flex-direction: row-reverse; }
+  html[lang="ar"] .rsv-num { text-align: right; }
+  html[lang="ar"] .filter-bar { direction: rtl; }
+  html[lang="ar"] .export-bar { direction: rtl; }
+  html[lang="ar"] .stats { direction: rtl; }
+  /* Lang toggle button */
+  .lang-btn { background:transparent; border:1px solid var(--accent); color:var(--accent); border-radius:7px; padding:6px 14px; font-size:0.82rem; font-weight:700; cursor:pointer; font-family:inherit; transition:all .2s; letter-spacing:.5px; }
+  .lang-btn:hover { background:rgba(0,200,255,.12); }
+  /* Powered-by footer */
+  .powered-footer { text-align:center; margin-top:40px; padding:22px 16px 18px; border-top:1px solid var(--border); position:relative; direction:ltr; unicode-bidi:embed; }
+  .powered-footer::before { content:''; position:absolute; top:-1px; left:50%; transform:translateX(-50%); width:60px; height:2px; background:linear-gradient(90deg,transparent,var(--accent),transparent); }
+  .pf-tag { font-size:0.65rem; font-family:'IBM Plex Mono',monospace; color:var(--muted); text-transform:uppercase; letter-spacing:1.4px; margin-bottom:6px; }
+  .pf-name { font-size:1.05rem; font-weight:700; color:#fff; margin-bottom:8px; letter-spacing:.5px; }
+  .pf-name span { color:var(--accent); }
+  .pf-contacts { display:flex; justify-content:center; gap:22px; flex-wrap:wrap; }
+  .pf-contact { display:flex; align-items:center; gap:7px; font-size:0.8rem; font-family:'IBM Plex Mono',monospace; color:var(--muted); }
+  .pf-contact a { color:var(--muted); text-decoration:none; transition:color .2s; }
+  .pf-contact a:hover { color:var(--accent); }
+  /* Paste section collapsible */
+  .paste-section { display:none; }
+  .paste-toggle { background:transparent; border:none; color:var(--muted2); font-size:0.72rem; font-family:'IBM Plex Mono',monospace; cursor:pointer; padding:4px 0; margin-top:6px; display:flex; align-items:center; gap:5px; transition:color .2s; }
+  .paste-toggle:hover { color:var(--muted); }
+  .paste-toggle .arrow { transition:transform .2s; display:inline-block; }
+  .paste-toggle.open .arrow { transform:rotate(90deg); }
+  .paste-section.visible { display:block; }
+</style>
+</head>
+<body>
+
+<header>
+  <div id="headerTitle">
+    <h1 id="mainTitle">ALTANTAWY <span>Comparison</span> Tool</h1>
+    <p class="subtitle" id="mainSubtitle">FOR PONSIANA HOTEL</p>
+  </div>
+</header>
+
+<div class="top-actions">
+  <button class="lang-btn" id="langBtn" onclick="toggleLang()">🌐 عربي</button>
+  <button class="btn-clear" id="btnClear" onclick="hardReset()">🗑 Clear All &amp; Reset</button>
+</div>
+
+<!-- Smart multi-file drop zone -->
+<div id="smartDrop" class="smart-drop-zone">
+  <input type="file" id="smartFileInput" multiple accept=".pdf,.txt,.csv" style="display:none">
+  <div class="drop-inner" id="dropInner">
+    <div class="drop-icon">📂</div>
+    <div class="drop-title" id="dropTitle">Drop files here or <span class="drop-link" onclick="document.getElementById('smartFileInput').click()">browse</span></div>
+    <div class="drop-sub" id="dropSub">Select both Hotel &amp; System files at once — app auto-detects type</div>
+    <div class="drop-formats" id="dropFormats">PDF · TXT · CSV &nbsp;·&nbsp; Multiple files supported</div>
+  </div>
+  <div id="fileTagsWrap" class="file-tags-wrap" style="display:none">
+    <div id="fileTags" class="file-tags"></div>
+    <button class="add-more-btn" onclick="document.getElementById('smartFileInput').click()">＋ Add More Files</button>
+  </div>
+</div>
+
+<div class="upload-grid">
+  <div class="upload-card">
+    <div class="card-label" data-en="Hotel File(s)" data-ar="ملفات الفندق">Hotel File(s)</div>
+    <div class="card-title" data-en="🏨 Hotel Main File" data-ar="🏨 الملف الرئيسي للفندق">🏨 Hotel Main File</div>
+    <div class="file-slots" id="hotelSlots"></div>
+    <button class="add-file-btn" onclick="addHotelSlot()" data-en="＋ Add Hotel File Manually" data-ar="＋ إضافة ملف فندق يدوياً">＋ Add Hotel File Manually</button>
+    <button class="paste-toggle" id="hotelPasteToggle" onclick="togglePaste('hotel')"><span class="arrow">▶</span> <span data-en="Or paste hotel text" data-ar="أو الصق نص الفندق">Or paste hotel text</span></button>
+    <div class="paste-section" id="hotelPasteSection">
+      <textarea class="paste-box" id="hotelPaste" placeholder="Paste hotel reservation text here..."></textarea>
+    </div>
+  </div>
+  <div class="upload-card">
+    <div class="card-label" data-en="System File(s)" data-ar="ملفات النظام">System File(s)</div>
+    <div class="card-title" data-en="🖥 System Files" data-ar="🖥 ملفات النظام">🖥 System Files</div>
+    <div class="file-slots" id="systemSlots"></div>
+    <button class="add-file-btn" onclick="addSystemSlot()" data-en="＋ Add System File Manually" data-ar="＋ إضافة ملف نظام يدوياً">＋ Add System File Manually</button>
+    <button class="paste-toggle" id="systemPasteToggle" onclick="togglePaste('system')"><span class="arrow">▶</span> <span data-en="Or paste system text" data-ar="أو الصق نص النظام">Or paste system text</span></button>
+    <div class="paste-section" id="systemPasteSection">
+      <textarea class="paste-box" id="systemPaste" placeholder="Paste system reservation text here..."></textarea>
+    </div>
+  </div>
+</div>
+
+<button class="compare-btn" onclick="runComparison()" id="compareBtn" data-en="⚡ Run Comparison" data-ar="⚡ تشغيل المقارنة">⚡ Run Comparison</button>
+<div id="results"></div>
+
+<script>
+// ── DEMO DATA ─────────────────────────────────────────────────────────────────
+const HOTEL_DATA = {
+  '138992':{ name:'Travel Gate GROUP',           from:'21/02/2026', till:'01/03/2026', rooms:15 },
+  '140241':{ name:'Yazan Nadi',                  from:'21/02/2026', till:'24/02/2026', rooms:1  },
+  '140206':{ name:'Mohamed Hossam',              from:'21/02/2026', till:'27/02/2026', rooms:4  },
+  '140198':{ name:'ABDELRAHMAN ALQAWASMEH',      from:'21/02/2026', till:'24/02/2026', rooms:1  },
+  '138977':{ name:'Khaled Nasser',               from:'21/02/2026', till:'25/02/2026', rooms:2  },
+  '140164':{ name:'Abdul Salam Bahleel',         from:'21/02/2026', till:'01/03/2026', rooms:1  },
+  '140553':{ name:'Abdulrahman Al Tuaimi',       from:'21/02/2026', till:'22/02/2026', rooms:1  },
+  '140523':{ name:'Kheer Al Belad',              from:'21/02/2026', till:'27/02/2026', rooms:9  },
+  '140173':{ name:'Abdulaziz Ibrahim Al-Salmi',  from:'21/02/2026', till:'22/02/2026', rooms:2  },
+  '140301':{ name:'Badriya Thabit AlQahtani',    from:'21/02/2026', till:'23/02/2026', rooms:1  },
+  '137001':{ name:'Tariq Abu Mayaleh',                  from:'21/02/2026', till:'25/02/2026', rooms:1 },
+  '138758':{ name:'Abdullah Hamad Abdullah',            from:'21/02/2026', till:'04/03/2026', rooms:1 },
+  '138760':{ name:'Muhammad Suleiman Masoud',           from:'21/02/2026', till:'04/03/2026', rooms:1 },
+  '138795':{ name:'Murad Muhammad Abdulkarim',          from:'21/02/2026', till:'28/02/2026', rooms:1 },
+  '138994':{ name:'Ali Al-Zarouq Ali',                  from:'21/02/2026', till:'04/03/2026', rooms:1 },
+  '139030':{ name:'El Taher Bousriouil',                from:'21/02/2026', till:'04/03/2026', rooms:1 },
+  '139031':{ name:'Mohammed bin Tariq Al-Buraieh',      from:'21/02/2026', till:'22/02/2026', rooms:1 },
+  '139296':{ name:'Al-Ahd GROUP',                       from:'21/02/2026', till:'27/02/2026', rooms:1 },
+  '139398':{ name:'Sami Abdulatif',                     from:'21/02/2026', till:'25/02/2026', rooms:1 },
+  '139437':{ name:'Omar Shadi',                         from:'21/02/2026', till:'23/02/2026', rooms:2 },
+  '139533':{ name:'Ammar Ali Muhammad Jaradat',         from:'21/02/2026', till:'26/02/2026', rooms:1 },
+  '139536':{ name:'Bahaa AlShamkhi',                    from:'21/02/2026', till:'04/03/2026', rooms:2 },
+  '139559':{ name:'Mohammed AlKharabsheh',              from:'21/02/2026', till:'25/02/2026', rooms:1 },
+  '139618':{ name:'Samia eissa faqeah',                 from:'21/02/2026', till:'23/02/2026', rooms:2 },
+  '139688':{ name:'mohammed alshabani',                 from:'21/02/2026', till:'04/03/2026', rooms:1 },
+  '139741':{ name:'Nasser AlQahtani',                   from:'21/02/2026', till:'25/02/2026', rooms:2 },
+  '139839':{ name:'Muhammad Al-Mabrouk Khaled',         from:'21/02/2026', till:'04/03/2026', rooms:1 },
+  '139842':{ name:'Rushdi Khairallah',                  from:'21/02/2026', till:'22/02/2026', rooms:2 },
+  '139989':{ name:'GROUP 21/02',                        from:'21/02/2026', till:'04/03/2026', rooms:6 },
+  '139990':{ name:'nedal abulaila',                     from:'21/02/2026', till:'04/03/2026', rooms:1 },
+  '140034':{ name:'fawad Hussain Alvi',                 from:'21/02/2026', till:'24/02/2026', rooms:1 },
+  '140060':{ name:'owais dandia',                       from:'21/02/2026', till:'28/02/2026', rooms:1 },
+  '140149':{ name:'Ali Hussein',                        from:'21/02/2026', till:'22/02/2026', rooms:2 },
+  '140154':{ name:'Mohammed Abdulrahman Al Huwaymil',   from:'21/02/2026', till:'22/02/2026', rooms:1 },
+  '140158':{ name:'Iman Sherine Mustafa',               from:'21/02/2026', till:'22/02/2026', rooms:1 },
+  '140163':{ name:'Saad bin Khalid bin Shuhaywin',      from:'21/02/2026', till:'22/02/2026', rooms:1 },
+  '140166':{ name:'Anas Muhammad bin Aniq',             from:'21/02/2026', till:'22/02/2026', rooms:1 },
+  '140168':{ name:'(unidentified - hotel only)',         from:'21/02/2026', till:'24/02/2026', rooms:1 },
+  '140171':{ name:'Suleiman Muhammad AlNasyan',         from:'21/02/2026', till:'22/02/2026', rooms:1 },
+  '140178':{ name:'Raneem Abdulrahman Al-Mazeed',       from:'21/02/2026', till:'22/02/2026', rooms:2 },
+  '140196':{ name:'Mustafa Muhammad Al-Damardash',      from:'21/02/2026', till:'22/02/2026', rooms:1 },
+  '140285':{ name:'Ahmed Hussein',                      from:'21/02/2026', till:'04/03/2026', rooms:1 },
+  '140340':{ name:'AHMED BEDRU ABEGNE',                 from:'21/02/2026', till:'02/03/2026', rooms:1 },
+  '140544':{ name:'Abdulnabi AlSayed',                  from:'21/02/2026', till:'27/02/2026', rooms:1 },
+};
+
+const SYSTEM_DATA = [
+  {rsv:'140337',from:'21/02/2026',till:'22/02/2026',rooms:2, guest:'Mohammed Saleh AlAbdullah Al-Sayari',hotel:'Ponsiana Hotel 3',htlRsv:'sent'},
+  {rsv:'140622',from:'21/02/2026',till:'22/02/2026',rooms:1, guest:'Ahmed Salem Abdullah',               hotel:'Ponsiana Hotel 3',htlRsv:'sent'},
+  {rsv:'140631',from:'21/02/2026',till:'22/02/2026',rooms:7, guest:'group (Kheer Al Belad)',             hotel:'Ponsiana Hotel 3',htlRsv:'sent'},
+  {rsv:'137001',from:'21/02/2026',till:'25/02/2026',rooms:1, guest:'Tariq Abu Mayaleh',                  hotel:'Ponsiana Hotel',htlRsv:'2086'},
+  {rsv:'138758',from:'21/02/2026',till:'04/03/2026',rooms:1, guest:'Abdullah Hamad Abdullah',            hotel:'Ponsiana Hotel',htlRsv:'2088'},
+  {rsv:'138760',from:'21/02/2026',till:'04/03/2026',rooms:1, guest:'Muhammad Suleiman Masoud',           hotel:'Ponsiana Hotel',htlRsv:'2090'},
+  {rsv:'138795',from:'21/02/2026',till:'28/02/2026',rooms:1, guest:'Murad Muhammad Abdulkarim',          hotel:'Ponsiana Hotel',htlRsv:'2091'},
+  {rsv:'138994',from:'21/02/2026',till:'04/03/2026',rooms:1, guest:'Ali Al-Zarouq Ali',                  hotel:'Ponsiana Hotel',htlRsv:'3012'},
+  {rsv:'139030',from:'21/02/2026',till:'04/03/2026',rooms:1, guest:'El Taher Bousriouil',                hotel:'Ponsiana Hotel',htlRsv:'3013'},
+  {rsv:'139031',from:'21/02/2026',till:'22/02/2026',rooms:1, guest:'Mohammed bin Tariq Al-Buraieh',      hotel:'Ponsiana Hotel',htlRsv:'3015'},
+  {rsv:'139296',from:'21/02/2026',till:'27/02/2026',rooms:9, guest:'Al-Ahd GROUP 21/02',                 hotel:'Ponsiana Hotel',htlRsv:'3018'},
+  {rsv:'139398',from:'21/02/2026',till:'25/02/2026',rooms:1, guest:'Sami Abdulatif Aljughayman',         hotel:'Ponsiana Hotel',htlRsv:'2161'},
+  {rsv:'139437',from:'21/02/2026',till:'23/02/2026',rooms:2, guest:'Omar Shadi',                         hotel:'Ponsiana Hotel',htlRsv:'3022'},
+  {rsv:'139533',from:'21/02/2026',till:'26/02/2026',rooms:1, guest:'Ammar Ali Muhammad Jaradat',         hotel:'Ponsiana Hotel',htlRsv:'3025'},
+  {rsv:'139536',from:'21/02/2026',till:'04/03/2026',rooms:2, guest:'Bahaa AlShamkhi',                    hotel:'Ponsiana Hotel',htlRsv:'3027'},
+  {rsv:'139559',from:'21/02/2026',till:'25/02/2026',rooms:1, guest:'Mohammed AlKharabsheh',              hotel:'Ponsiana Hotel',htlRsv:'3030'},
+  {rsv:'139618',from:'21/02/2026',till:'23/02/2026',rooms:2, guest:'Samia eissa faqeah',                 hotel:'Ponsiana Hotel',htlRsv:'3032'},
+  {rsv:'139688',from:'21/02/2026',till:'04/03/2026',rooms:1, guest:'mohammed alshabani',                 hotel:'Ponsiana Hotel',htlRsv:'2241'},
+  {rsv:'139741',from:'21/02/2026',till:'25/02/2026',rooms:2, guest:'Nasser AlQahtani',                   hotel:'Ponsiana Hotel',htlRsv:'sent'},
+  {rsv:'139839',from:'21/02/2026',till:'04/03/2026',rooms:1, guest:'Muhammad Al-Mabrouk Khaled',         hotel:'Ponsiana Hotel',htlRsv:'2352'},
+  {rsv:'139842',from:'21/02/2026',till:'22/02/2026',rooms:2, guest:'Rushdi Khairallah',                  hotel:'Ponsiana Hotel',htlRsv:'sent'},
+  {rsv:'139989',from:'21/02/2026',till:'04/03/2026',rooms:6, guest:'GROUP 21/02',                        hotel:'Ponsiana Hotel',htlRsv:'sent'},
+  {rsv:'139990',from:'21/02/2026',till:'04/03/2026',rooms:1, guest:'nedal abulaila',                     hotel:'Ponsiana Hotel',htlRsv:'sent'},
+  {rsv:'140034',from:'21/02/2026',till:'24/02/2026',rooms:1, guest:'fawad Hussain Alvi',                 hotel:'Ponsiana Hotel',htlRsv:'sent'},
+  {rsv:'140060',from:'21/02/2026',till:'28/02/2026',rooms:1, guest:'owais dandia',                       hotel:'Ponsiana Hotel',htlRsv:'sent'},
+  {rsv:'140149',from:'21/02/2026',till:'22/02/2026',rooms:2, guest:'Ali Hussein',                        hotel:'Ponsiana Hotel',htlRsv:'sent'},
+  {rsv:'140154',from:'21/02/2026',till:'22/02/2026',rooms:1, guest:'Mohammed Abdulrahman Al Huwaymil',   hotel:'Ponsiana Hotel',htlRsv:'sent'},
+  {rsv:'140158',from:'21/02/2026',till:'22/02/2026',rooms:1, guest:'Iman Sherine Mustafa',               hotel:'Ponsiana Hotel',htlRsv:'sent'},
+  {rsv:'140163',from:'21/02/2026',till:'22/02/2026',rooms:1, guest:'Saad bin Khalid bin Shuhaywin',      hotel:'Ponsiana Hotel',htlRsv:'sent'},
+  {rsv:'140166',from:'21/02/2026',till:'22/02/2026',rooms:1, guest:'Anas Muhammad bin Aniq',             hotel:'Ponsiana Hotel',htlRsv:'sent'},
+  {rsv:'140171',from:'21/02/2026',till:'22/02/2026',rooms:1, guest:'Suleiman Muhammad AlNasyan',         hotel:'Ponsiana Hotel',htlRsv:'sent'},
+  {rsv:'140173',from:'21/02/2026',till:'22/02/2026',rooms:2, guest:'Abdulaziz Ibrahim Al-Salmi',         hotel:'Ponsiana Hotel',htlRsv:'sent'},
+  {rsv:'140178',from:'21/02/2026',till:'22/02/2026',rooms:2, guest:'Raneem Abdulrahman Al-Mazeed',       hotel:'Ponsiana Hotel',htlRsv:'sent'},
+  {rsv:'140196',from:'21/02/2026',till:'22/02/2026',rooms:1, guest:'Mustafa Muhammad Al-Damardash',      hotel:'Ponsiana Hotel',htlRsv:'sent'},
+  {rsv:'140198',from:'21/02/2026',till:'24/02/2026',rooms:1, guest:'ABDELRAHMAN ALQAWASMEH',             hotel:'Ponsiana Hotel',htlRsv:'sent'},
+  {rsv:'140206',from:'21/02/2026',till:'27/02/2026',rooms:4, guest:'Mohamed Hossam',                     hotel:'Ponsiana Hotel',htlRsv:'sent'},
+  {rsv:'140241',from:'21/02/2026',till:'24/02/2026',rooms:1, guest:'Yazan Nadi',                         hotel:'Ponsiana Hotel',htlRsv:'sent'},
+  {rsv:'140285',from:'21/02/2026',till:'04/03/2026',rooms:1, guest:'Ahmed Hussein',                      hotel:'Ponsiana Hotel',htlRsv:'sent'},
+  {rsv:'140301',from:'21/02/2026',till:'23/02/2026',rooms:1, guest:'Badriya Thabit Al-Qahtani',          hotel:'Ponsiana Hotel',htlRsv:'sent'},
+  {rsv:'140324',from:'21/02/2026',till:'23/02/2026',rooms:1, guest:'namir alnamir',                      hotel:'Ponsiana Hotel',htlRsv:'sent'},
+  {rsv:'140340',from:'21/02/2026',till:'02/03/2026',rooms:1, guest:'AHMED BEDRU ABEGNE',                 hotel:'Ponsiana Hotel',htlRsv:'sent'},
+  {rsv:'140403',from:'21/02/2026',till:'22/02/2026',rooms:1, guest:'Musa Abu Doush',                     hotel:'Ponsiana Hotel',htlRsv:'sent'},
+  {rsv:'140523',from:'21/02/2026',till:'27/02/2026',rooms:9, guest:'Kheer Al Belad',                     hotel:'Ponsiana Hotel',htlRsv:'sent'},
+  {rsv:'140544',from:'21/02/2026',till:'27/02/2026',rooms:1, guest:'Abdulnabi AlSayed',                  hotel:'Ponsiana Hotel',htlRsv:'sent'},
+  {rsv:'140553',from:'21/02/2026',till:'22/02/2026',rooms:1, guest:'Abdulrahman Al Tuaimi',              hotel:'Ponsiana Hotel',htlRsv:'sent'},
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let hotelMap       = {};
+let systemList     = [];
+let currentResults = [];
+let currentFilter  = 'all';
+let currentSearch  = '';
+
+// ── HARD RESET — truly starts fresh, no demo ─────────────────────────────────
+function hardReset() {
+  hotelMap = {}; systemList = []; currentResults = []; currentFilter = 'all'; currentSearch = '';
+  loadedFiles = [];
+  document.getElementById('hotelSlots').innerHTML = '';
+  document.getElementById('systemSlots').innerHTML = '';
+  document.getElementById('hotelPaste').value = '';
+  document.getElementById('systemPaste').value = '';
+  document.getElementById('results').innerHTML = '';
+  document.getElementById('fileTags').innerHTML = '';
+  document.getElementById('fileTagsWrap').style.display = 'none';
+  document.getElementById('dropInner').style.display = '';
+  addHotelSlot();
+  addSystemSlot();
+  toast(t('toastReset'));
+}
+
+// ── SLOT MANAGEMENT ───────────────────────────────────────────────────────────
+function addHotelSlot() {
+  const container = document.getElementById('hotelSlots');
+  const div = document.createElement('div');
+  div.className = 'file-slot';
+  div.innerHTML = `<input type="file" accept=".pdf,.txt,.csv">
+    <span class="slot-icon">📄</span>
+    <div class="slot-info"><div class="slot-label">Hotel file — click or drag & drop</div><div class="slot-name"></div></div>
+    <button class="remove-slot" title="Remove">✕</button>`;
+  container.appendChild(div);
+  wireSlot(div, 'hotel');
+}
+
+function addSystemSlot() {
+  const container = document.getElementById('systemSlots');
+  const div = document.createElement('div');
+  div.className = 'file-slot';
+  div.innerHTML = `<input type="file" accept=".pdf,.txt,.csv">
+    <span class="slot-icon">📋</span>
+    <div class="slot-info"><div class="slot-label">System file — click or drag & drop</div><div class="slot-name"></div></div>
+    <button class="remove-slot" title="Remove">✕</button>`;
+  container.appendChild(div);
+  wireSlot(div, 'system');
+}
+
+function wireSlot(div, type) {
+  const input  = div.querySelector('input[type="file"]');
+  const nameEl = div.querySelector('.slot-name');
+  const rm     = div.querySelector('.remove-slot');
+  // Entire slot is clickable (except remove button)
+  div.addEventListener('click', e => { if (!e.target.closest('.remove-slot')) input.click(); });
+  rm.addEventListener('click', e => { e.stopPropagation(); div.remove(); });
+  div.addEventListener('dragover',  e => { e.preventDefault(); div.classList.add('dragover'); });
+  div.addEventListener('dragleave', () => div.classList.remove('dragover'));
+  div.addEventListener('drop', e => {
+    e.preventDefault(); div.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if (f) { nameEl.textContent = f.name; nameEl.classList.add('visible'); handleFile(f, type); }
+  });
+  input.addEventListener('change', e => {
+    const f = e.target.files[0];
+    if (f) { nameEl.textContent = f.name; nameEl.classList.add('visible'); handleFile(f, type); }
+  });
+}
+
+// ── FILE HANDLING ─────────────────────────────────────────────────────────────
+async function handleFile(file, type) {
+  let text = '';
+  if (file.name.toLowerCase().endsWith('.pdf')) {
+    try { text = await extractPdfText(file); }
+    catch(e) { toast('PDF parse failed — try pasting the text instead.'); return; }
+  } else {
+    text = await file.text();
+  }
+  if (type === 'hotel') {
+    const parsed = parseHotelText(text);
+    for (const [v, d] of Object.entries(parsed)) {
+      hotelMap[v] = hotelMap[v] ? { ...hotelMap[v], rooms: hotelMap[v].rooms + d.rooms } : d;
+    }
+    toast('Hotel file parsed: ' + Object.keys(parsed).length + ' voucher(s)');
+  } else {
+    const parsed = parseSystemText(text);
+    systemList.push(...parsed);
+    toast('System file parsed: ' + parsed.length + ' reservation(s)');
+  }
+}
+
+// PDF.js lazy loader
+let _pdfLib = null;
+async function extractPdfText(file) {
+  if (!_pdfLib) {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      s.onload = () => { pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; _pdfLib=pdfjsLib; res(); };
+      s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+  const buf = await file.arrayBuffer();
+  const pdf = await _pdfLib.getDocument({ data: buf }).promise;
+  let out = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const pg = await pdf.getPage(i);
+    const c  = await pg.getTextContent();
+    out += c.items.map(x => x.str).join(' ') + '\n';
+  }
+  return out;
+}
+
+// ── HOTEL FILE PARSER ─────────────────────────────────────────────────────────
+// Handles Poinciana Hotel PDF (HOTAL_MAIN_FILE.pdf).
+// TWO TABLE FORMATS:
+//
+// TOP TABLE (arrivals list): each ROW = 1 physical room booked
+//   Format: ID RoomNo RoomType [GuestName] yyyy-mm-dd HH:MM yyyy-mm-dd HH:MM VoucherNo Adults Children Askant Travel TA ...
+//   Count: 1 room per matching row (accumulate for same voucher)
+//
+// BOTTOM TABLE (booking summary): Rooms column = actual room count per row
+//   Format: BookingID [GroupName] yyyy-mm-dd yyyy-mm-dd VoucherNo Country [Channel] Askant Travel N TA ...
+//   Count: N rooms per row (accumulate for same voucher — e.g. 139989 has 3 rows × 2 = 6)
+function parseHotelText(text) {
+  const result = {};
+
+  // TOP TABLE: datetime datetime VoucherNo (each match = 1 room)
+  const topRe = /(\d{4}-\d{2}-\d{2})\s+\d{2}:\d{2}\s+(\d{4}-\d{2}-\d{2})\s+\d{2}:\d{2}\s+(\d{5,6})\b/g;
+  for (const m of text.matchAll(topRe)) {
+    const [, a, d, v] = m;
+    if (!result[v]) result[v] = { name:'', from:ymd(a), till:ymd(d), rooms:0 };
+    result[v].rooms++;
+  }
+
+  // BOTTOM TABLE: date-only date-only VoucherNo ... Askant Travel N TA
+  // Use [^\n\r]* to avoid crossing lines (when pdf adds newlines between pages)
+  const botRe = /(\d{4}-\d{2}-\d{2})\s+(\d{4}-\d{2}-\d{2})\s+(\d{5,6})\b[^\n\r]*?Askant\s+Travel\s+(\d+)\s+TA/gi;
+  for (const m of text.matchAll(botRe)) {
+    const [, a, d, v, r] = m;
+    const n = parseInt(r, 10);
+    if (!result[v]) result[v] = { name:'', from:ymd(a), till:ymd(d), rooms:0 };
+    result[v].rooms += n;
+  }
+
+  // GENERIC FALLBACK: if neither found anything, try date date voucherNo N at end-of-line
+  if (Object.keys(result).length === 0) {
+    const genRe = /(\d{4}-\d{2}-\d{2})\s+(\d{4}-\d{2}-\d{2})\s+(\d{5,6})\b.*?(\d{1,2})\s*(?:\r?\n|$)/gm;
+    for (const m of text.matchAll(genRe)) {
+      const [, a, d, v, r] = m;
+      if (!result[v]) result[v] = { name:'', from:ymd(a), till:ymd(d), rooms: parseInt(r,10) };
+    }
+  }
+
+  return result;
+}
+
+// ── SYSTEM FILE PARSER ─────────────────────────────────────────────────────────
+// Parses Askant Travel system report PDFs.
+// Columns: [SN] C RSV# dd/mm/yyyy dd/mm/yyyy HtlRsv# GuestName Hotel Agent Nationality [NusukID] RoomType... Rooms
+//
+// ROOM COUNT — 3-strategy waterfall (most accurate first):
+//
+//  Strategy A — Room/MP column parsing (primary, most robust):
+//    Each room type entry starts with "N - TYPE" e.g. "3 - QUAD - R.O City view"
+//    Sum all leading N values across multiple room type entries in the cell.
+//    Works whether or not the standalone Rooms total column is present.
+//    e.g. "1 - DBL ... 1 - DBL ... 1 - QUAD ... 3 - QUAD" → 1+1+1+3 = 6
+//
+//  Strategy B — "view" anchor (fallback):
+//    Room type descriptions end with "City view". The Rooms total comes right after.
+//    Find the last "view" in row text, read the number immediately following it.
+//
+//  Strategy C — last number not followed by dash (last resort):
+//    Find last standalone 1-2 digit number that isn't part of a "N -" room type prefix.
+function parseSystemText(text) {
+  const out = [];
+  const boundary = /\bC\s+(\d{5,6})\s+(\d{2}\/\d{2}\/\d{4})\s+(\d{2}\/\d{2}\/\d{4})/gi;
+  const matches = [...text.matchAll(boundary)];
+
+  for (let i = 0; i < matches.length; i++) {
+    const m = matches[i];
+    const [, rsv, from, till] = m;
+    const rowStart = m.index + m[0].length;
+    const rowEnd = i + 1 < matches.length ? matches[i + 1].index : rowStart + 600;
+    const rest = text.substring(rowStart, rowEnd);
+
+    const hotelM = rest.match(/Ponsiana\s+Hotel(?:\s+\d+)?/i);
+    const hotel  = hotelM ? hotelM[0].trim() : 'Ponsiana Hotel';
+    const htlRsvM = rest.match(/\b(sent|\d{4})\b/i);
+    const htlRsv  = htlRsvM ? htlRsvM[1].toLowerCase() : 'sent';
+
+    // ── Strategy A: sum the leading N from every "N - ROOMTYPE" pattern ──
+    // Matches: "3 - QUAD", "1 - DBL", "2 - TPL", "1 - SGL", etc.
+    const roomTypeRe = /(?<!\d)(\d{1,2})\s*-\s*(?:DBL|TPL|QUAD|SGL|TRP|QUD)/gi;
+    const roomTypeMatches = [...rest.matchAll(roomTypeRe)];
+    let rooms = null;
+    if (roomTypeMatches.length > 0) {
+      rooms = roomTypeMatches.reduce((sum, rm) => sum + parseInt(rm[1], 10), 0);
+    }
+
+    // ── Strategy B: number after last "view" in the row ──
+    if (!rooms || rooms === 0) {
+      const lastView = rest.toLowerCase().lastIndexOf('view');
+      if (lastView !== -1) {
+        const afterView = rest.substring(lastView + 4).replace(/\d{6,}/g, '');
+        const numM = afterView.match(/(?<!\d)(\d{1,2})(?!\d)/);
+        if (numM) {
+          const n = parseInt(numM[1], 10);
+          if (n > 0 && n <= 50) rooms = n;
+        }
+      }
+    }
+
+    // ── Strategy C: last standalone 1-2 digit number not followed by ' -' ──
+    if (!rooms || rooms === 0) {
+      const cleanRest = rest.replace(/\d{6,}/g, '');
+      const nums = [...cleanRest.matchAll(/(?<!\d)(\d{1,2})(?!\d)(?!\s*-)/g)];
+      for (let j = nums.length - 1; j >= 0; j--) {
+        const n = parseInt(nums[j][1], 10);
+        if (n > 0 && n <= 50) { rooms = n; break; }
+      }
+    }
+
+    if (!rooms || rooms <= 0) rooms = 1;
+
+    // Guest name: text after htlRsv/sent token, before hotel name
+    let guest = rsv;
+    const htlStr = htlRsvM ? htlRsvM[0] : '';
+    const afterHtlRsv = htlStr ? rest.substring(rest.indexOf(htlStr) + htlStr.length).trim() : rest;
+    const hotelIdx = hotelM ? afterHtlRsv.indexOf(hotelM[0]) : -1;
+    if (hotelIdx > 0) {
+      guest = afterHtlRsv.substring(0, hotelIdx).replace(/-\s*$/, '').replace(/\s+/g, ' ').trim() || rsv;
+    }
+
+    out.push({ rsv, from, till, rooms, guest, hotel, htlRsv });
+  }
+
+  return out;
+}
+
+
+function ymd(s) { const [y,m,d]=s.split('-'); return `${d}/${m}/${y}`; }
+
+// ── COMPARISON ────────────────────────────────────────────────────────────────
+function runComparison() {
+  // Process smart-loaded files first
+  for (const lf of loadedFiles) {
+    if (lf.type === 'hotel') {
+      const parsed = parseHotelText(lf.text);
+      for (const [v, d] of Object.entries(parsed)) {
+        hotelMap[v] = hotelMap[v] ? { ...hotelMap[v], rooms: hotelMap[v].rooms + d.rooms } : d;
+      }
+    } else if (lf.type === 'system') {
+      systemList.push(...parseSystemText(lf.text));
+    }
+  }
+
+  const hp = document.getElementById('hotelPaste').value.trim();
+  if (hp) Object.assign(hotelMap, parseHotelText(hp));
+  const sp = document.getElementById('systemPaste').value.trim();
+  if (sp) systemList.push(...parseSystemText(sp));
+
+  // Fall back to demo only if truly nothing was loaded
+  if (!Object.keys(hotelMap).length && !systemList.length) {
+    hotelMap   = Object.assign({}, HOTEL_DATA);
+    systemList = SYSTEM_DATA.map(r => Object.assign({}, r));
+  }
+
+  const results = [];
+
+  // ── Group system entries by RSV# and sum rooms ────────────────────────────
+  // This handles cases like RSV 139989 appearing on 3 lines × 2 rooms = 6 total
+  const sysGrouped = {};
+  for (const sys of systemList) {
+    if (!sysGrouped[sys.rsv]) {
+      sysGrouped[sys.rsv] = { ...sys };
+    } else {
+      sysGrouped[sys.rsv].rooms += sys.rooms;
+    }
+  }
+
+  const sysSet = new Set(Object.keys(sysGrouped));
+
+  for (const [rsv, sys] of Object.entries(sysGrouped)) {
+    const h = hotelMap[rsv];
+    if (!h) {
+      results.push({ status:'nohotel', sys, hotel:null, diffs:[] });
+    } else {
+      const diffs = [];
+      if (sys.from  !== h.from)  diffs.push({f:'Arrival',   sv:sys.from,  hv:h.from});
+      if (sys.till  !== h.till)  diffs.push({f:'Departure', sv:sys.till,  hv:h.till});
+      if (sys.rooms !== h.rooms) diffs.push({f:'Rooms',     sv:sys.rooms, hv:h.rooms});
+      results.push({ status: diffs.length ? 'diff' : 'match', sys, hotel:h, diffs });
+    }
+  }
+
+  // Hotel vouchers with no matching system entry
+  for (const [v, h] of Object.entries(hotelMap)) {
+    if (!sysSet.has(v)) results.push({ status:'nosys', rsv:v, hotel:h, sys:null, diffs:[] });
+  }
+
+  currentResults = results;
+  currentFilter  = 'all';
+  currentSearch  = '';
+  renderResults();
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function renderResults() {
+  const el = document.getElementById('results');
+  const all = currentResults;
+  if (!all.length) { el.innerHTML=''; return; }
+
+  const matched = all.filter(r=>r.status==='match');
+  const diffs   = all.filter(r=>r.status==='diff');
+  const nohotel = all.filter(r=>r.status==='nohotel');
+  const nosys   = all.filter(r=>r.status==='nosys');
+
+  let filtered = all;
+  if (currentFilter==='match')   filtered = matched;
+  if (currentFilter==='diff')    filtered = diffs;
+  if (currentFilter==='nohotel') filtered = nohotel;
+  if (currentFilter==='nosys')   filtered = nosys;
+
+  // Build mismatch summary text for chips
+  const diffSummary = diffs.map(r => {
+    const parts = r.diffs.map(d => `${d.f}: System=${d.sv} vs Hotel=${d.hv}`).join(' | ');
+    return `#${r.sys.rsv} ${r.sys.guest}: ${parts}`;
+  }).join('\n');
+
+  const nohotelSummary = nohotel.map(r => `#${r.sys.rsv} ${r.sys.guest}`).join(', ');
+  const nosysSummary   = nosys.map(r => `#${r.rsv} ${r.hotel.name}`).join(', ');
+
+  // Stats chips for active filter
+  const statActiveClass = (s) => currentFilter === s ? 'active-stat' : '';
+
+  // Count unique system RSVs from currentResults (avoids re-grouping systemList)
+  const totalSysRsvs = all.filter(r=>r.status!=='nosys').length;
+
+  let html = `
+    <div class="results-hdr">
+      <div class="results-title">${t('resultsTitle', totalSysRsvs, Object.keys(hotelMap).length)}</div>
+    </div>
+    <div class="stats">
+      <div class="stat s-total ${statActiveClass('all')}" onclick="setFilter('all')" title="Show all">
+        <div class="num">${all.length}</div><div class="lbl">${t('statTotal')}</div>
+      </div>
+      <div class="stat s-match ${statActiveClass('match')}" onclick="setFilter('match')" title="Show matched">
+        <div class="num">${matched.length}</div><div class="lbl">${t('statMatch')}</div>
+      </div>
+      <div class="stat s-diff ${statActiveClass('diff')}" onclick="setFilter('diff')" title="Show differences">
+        <div class="num">${diffs.length}</div><div class="lbl">${t('statDiff')}</div>
+      </div>
+      <div class="stat s-nohotel ${statActiveClass('nohotel')}" onclick="setFilter('nohotel')" title="Show not in hotel">
+        <div class="num">${nohotel.length}</div><div class="lbl">${t('statNoHotel')}</div>
+      </div>
+      <div class="stat s-nosys ${statActiveClass('nosys')}" onclick="setFilter('nosys')" title="Show not in system">
+        <div class="num">${nosys.length}</div><div class="lbl">${t('statNoSys')}</div>
+      </div>
+    </div>`;
+
+  // Mismatch summary chips (only when there are issues)
+  if (diffs.length || nohotel.length || nosys.length) {
+    html += `<div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;">`;
+    if (diffs.length) {
+      html += `<span class="mismatch-chip" onclick="copyText(${JSON.stringify(diffSummary)},this)" title="Click to copy">
+        ${t('diffChipLabel', diffs.length, diffs.map(r=>`#${r.sys.rsv} [${r.diffs.map(d=>d.f).join(',')}]`).join(' · '))}
+        <span class="copy-icon">⧉</span>
+      </span>`;
+    }
+    if (nohotel.length) {
+      html += `<span class="mismatch-chip" style="border-color:rgba(255,71,87,.3);background:rgba(255,71,87,.07);color:var(--red);" onclick="copyText(${JSON.stringify('NOT IN HOTEL: '+nohotelSummary)},this)" title="Click to copy">
+        ✗ ${nohotel.length} Not in Hotel: ${nohotel.map(r=>`#${r.sys.rsv}`).join(' · ')}
+        <span class="copy-icon">⧉</span>
+      </span>`;
+    }
+    if (nosys.length) {
+      html += `<span class="mismatch-chip" style="border-color:rgba(179,136,255,.3);background:rgba(179,136,255,.07);color:var(--purple);" onclick="copyText(${JSON.stringify('NOT IN SYSTEM: '+nosysSummary)},this)" title="Click to copy">
+        ◈ ${nosys.length} Not in System: ${nosys.map(r=>`#${r.rsv}`).join(' · ')}
+        <span class="copy-icon">⧉</span>
+      </span>`;
+    }
+    html += `</div>`;
+  }
+
+  // Export toolbar
+  html += `<div class="export-bar">
+    <div class="export-bar-row">
+      <span class="export-bar-label">${t('exportLabel')}</span>
+      <button class="export-btn" onclick="exportText()">${t('exportText')}</button>
+      <button class="export-btn excel" onclick="exportExcel()">${t('exportExcel')}</button>
+      <button class="export-btn img" onclick="exportImage()">${t('exportImg')}</button>
+    </div>
+    <div class="export-sections-row">
+      <span class="export-sections-label">${t('chkInclude')}</span>
+      <label class="export-chk-group chk-match">
+        <input type="checkbox" id="chkMatch" checked>
+        <span class="chk-box"></span>
+        <span class="chk-label" style="color:var(--green)">${t('chkLblMatch')}</span>
+      </label>
+      <label class="export-chk-group chk-nohotel">
+        <input type="checkbox" id="chkNoHotel" checked>
+        <span class="chk-box"></span>
+        <span class="chk-label" style="color:var(--red)">${t('chkLblNoHotel')}</span>
+      </label>
+      <label class="export-chk-group chk-nosys">
+        <input type="checkbox" id="chkNoSys" checked>
+        <span class="chk-box"></span>
+        <span class="chk-label" style="color:var(--purple)">${t('chkLblNoSys')}</span>
+      </label>
+      <label class="export-chk-group chk-diff">
+        <input type="checkbox" id="chkDiff" checked>
+        <span class="chk-box"></span>
+        <span class="chk-label" style="color:var(--yellow)">${t('chkLblDiff')}</span>
+      </label>
+    </div>
+  </div>`;
+
+  // Search box
+  html += `<input class="search-box" id="searchBox" type="text" placeholder="${t('searchPlaceholder')}" value="${currentSearch}" oninput="handleSearch(this.value)">
+  <div class="search-count" id="searchCount"></div>`;
+
+  const groups = [
+    {s:'diff',    items:filtered.filter(r=>r.status==='diff'),    label:t('sectionDiff'),            dot:'sd-diff'},
+    {s:'nohotel', items:filtered.filter(r=>r.status==='nohotel'), label:t('sectionNoHotel'),         dot:'sd-nohotel'},
+    {s:'nosys',   items:filtered.filter(r=>r.status==='nosys'),   label:t('sectionNoSys'),           dot:'sd-nosys'},
+    {s:'match',   items:filtered.filter(r=>r.status==='match'),   label:t('sectionMatch'),           dot:'sd-match'},
+  ];
+
+  for (const g of groups) {
+    if (!g.items.length) continue;
+    html += `<div class="section-hdr"><div class="sdot ${g.dot}"></div><h3>${g.label} (${g.items.length})</h3></div>`;
+    for (const r of g.items) html += buildItem(r);
+  }
+
+  el.innerHTML = html;
+
+  // Re-apply search if active
+  if (currentSearch) handleSearch(currentSearch, false);
+}
+
+function sysGrouped() {
+  const g = {};
+  for (const s of systemList) {
+    if (!g[s.rsv]) g[s.rsv] = {...s};
+    else g[s.rsv].rooms += s.rooms;
+  }
+  return g;
+}
+
+function buildItem(r) {
+  const bm = {match:'bd-match',diff:'bd-diff',nohotel:'bd-nohotel',nosys:'bd-nosys'};
+  const bt = {match:t('badgeMatch'), diff:t('badgeDiff'), nohotel:t('badgeNoHotel'), nosys:t('badgeNoSys')};
+  const rsv   = r.status==='nosys' ? r.rsv : r.sys.rsv;
+  const guest = r.status==='nosys' ? r.hotel.name : r.sys.guest;
+  const hotel = r.sys ? r.sys.hotel : '';
+  const htlId = (r.sys && r.sys.htlRsv && r.sys.htlRsv !== 'sent') ? t('hotelIdTag', r.sys.htlRsv) :
+                (r.sys && r.sys.htlRsv === 'sent') ? t('pending') : '';
+
+  // Inline mismatch summary shown beside the badge
+  let mismatchSummary = '';
+  if (r.status === 'diff' && r.diffs.length) {
+    const txt = r.diffs.map(d=>`${d.f}: ${d.sv}→${d.hv}`).join(' | ');
+    mismatchSummary = `<span class="mismatch-chip" style="font-size:0.62rem;padding:2px 7px;" onclick="event.stopPropagation();copyText(${JSON.stringify(txt)},this)" title="Click to copy">${txt} <span class="copy-icon">⧉</span></span>`;
+  }
+
+  let body = '';
+  if (r.status==='nohotel') {
+    body = `<div class="alert-msg red">${t('alertNoHotel', rsv, r.sys.from, r.sys.till, r.sys.rooms)}</div>`;
+  } else if (r.status==='nosys') {
+    body = `<div class="alert-msg purple">${t('alertNoSys', rsv, r.hotel.from, r.hotel.till, r.hotel.rooms)}</div>`;
+  } else {
+    body = `<table class="ctbl"><thead><tr><th>${t('tblField')}</th><th>${t('tblSystem')}</th><th>${t('tblHotel')}</th><th>${t('tblStatus')}</th></tr></thead><tbody>`;
+    for (const {f,sv,hv} of [
+      {f:t('fieldArrival'), sv:r.sys.from,  hv:r.hotel.from},
+      {f:t('fieldDep'),     sv:r.sys.till,  hv:r.hotel.till},
+      {f:t('fieldRooms'),   sv:r.sys.rooms, hv:r.hotel.rooms},
+    ]) {
+      const ok = String(sv)===String(hv);
+      body += `<tr>
+        <td style="color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:.7rem">${f}</td>
+        <td class="${ok?'v-ok':'v-diff'}">${sv}</td>
+        <td class="${ok?'v-ok':'v-diff'}">${hv}</td>
+        <td>${ok?'<span style="color:var(--green)">✓</span>':`<span style="color:var(--yellow)">${t('mismatch')}</span>`}</td>
+      </tr>`;
+    }
+    body += '</tbody></table>';
+    if (r.hotel && r.hotel.name) body += `<div class="meta-row">${t('guestNameHotel')} <span>${r.hotel.name}</span></div>`;
+  }
+  if (htlId)  body += `<div class="meta-row">${t('confirmLabel')} <span>${htlId}</span></div>`;
+  if (hotel)  body += `<div class="meta-row">${t('hotelLabel2')} <span>${hotel}</span></div>`;
+
+  return `<div class="result-item st-${r.status}" data-rsv="${rsv}" data-name="${guest.toLowerCase()}">
+    <div class="result-header" onclick="this.parentElement.classList.toggle('open')">
+      <div class="rsv-num">#${rsv}</div>
+      <div class="guest-name">${guest}</div>
+      ${mismatchSummary}
+      <div class="htl-tag">${htlId}</div>
+      <span class="badge ${bm[r.status]}">${bt[r.status]}</span>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="result-body">${body}</div>
+  </div>`;
+}
+
+function setFilter(f) { currentFilter=f; renderResults(); }
+
+function handleSearch(v, updateState=true) {
+  if (updateState) currentSearch = v;
+  v = v.toLowerCase();
+  const items = document.querySelectorAll('.result-item');
+  let visible = 0;
+  items.forEach(el => {
+    const show = !v || (el.dataset.rsv||'').includes(v) || (el.dataset.name||'').includes(v);
+    el.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  const countEl = document.getElementById('searchCount');
+  if (countEl) {
+    if (v) {
+      countEl.textContent = t('searchCount', visible, v);
+      countEl.classList.add('visible');
+    } else {
+      countEl.classList.remove('visible');
+    }
+  }
+  // Show/hide section headers
+  document.querySelectorAll('.section-hdr').forEach(hdr => {
+    let next = hdr.nextElementSibling;
+    let anyVisible = false;
+    while (next && next.classList.contains('result-item')) {
+      if (next.style.display !== 'none') anyVisible = true;
+      next = next.nextElementSibling;
+    }
+    hdr.style.display = anyVisible ? '' : 'none';
+  });
+}
+
+// ── COPY HELPER ───────────────────────────────────────────────────────────────
+function copyText(txt, el) {
+  navigator.clipboard.writeText(txt).then(() => {
+    const orig = el.innerHTML;
+    el.innerHTML = el.innerHTML.replace('⧉','✓ Copied!');
+    setTimeout(()=>{ el.innerHTML = orig; }, 1500);
+  }).catch(()=> toast('Copy failed — please copy manually'));
+}
+
+// ── EXPORT SECTION SELECTION ──────────────────────────────────────────────────
+function getExportSections() {
+  return {
+    matched: document.getElementById('chkMatch')   ? document.getElementById('chkMatch').checked   : true,
+    nohotel: document.getElementById('chkNoHotel') ? document.getElementById('chkNoHotel').checked : true,
+    nosys:   document.getElementById('chkNoSys')   ? document.getElementById('chkNoSys').checked   : true,
+    diffs:   document.getElementById('chkDiff')    ? document.getElementById('chkDiff').checked    : true,
+  };
+}
+
+// ── EXPORT ────────────────────────────────────────────────────────────────────
+function buildReportText() {
+  const all     = currentResults;
+  const diffs   = all.filter(r=>r.status==='diff');
+  const nohotel = all.filter(r=>r.status==='nohotel');
+  const nosys   = all.filter(r=>r.status==='nosys');
+  const matched = all.filter(r=>r.status==='match');
+  const now = new Date().toLocaleString();
+  const sel = getExportSections();
+
+  let txt = `RESERVATION COMPARISON REPORT\n`;
+  txt += `Generated: ${now}\n`;
+  txt += `${'='.repeat(60)}\n\n`;
+  txt += `SUMMARY\n${'-'.repeat(40)}\n`;
+  txt += `Total Entries  : ${all.length}\n`;
+  if (sel.matched) txt += `Matched        : ${matched.length}\n`;
+  if (sel.diffs)   txt += `Differences    : ${diffs.length}\n`;
+  if (sel.nohotel) txt += `Not in Hotel   : ${nohotel.length}\n`;
+  if (sel.nosys)   txt += `Not in System  : ${nosys.length}\n`;
+  txt += `\n`;
+
+  if (sel.diffs && diffs.length) {
+    txt += `DIFFERENCES (${diffs.length})\n${'-'.repeat(40)}\n`;
+    diffs.forEach(r => {
+      txt += `RSV# ${r.sys.rsv} — ${r.sys.guest}\n`;
+      r.diffs.forEach(d => txt += `  • ${d.f}: System="${d.sv}" vs Hotel="${d.hv}"\n`);
+      txt += `\n`;
+    });
+  }
+
+  if (sel.nohotel && nohotel.length) {
+    txt += `IN SYSTEM · NOT IN HOTEL (${nohotel.length})\n${'-'.repeat(40)}\n`;
+    nohotel.forEach(r => txt += `  RSV# ${r.sys.rsv} — ${r.sys.guest} | ${r.sys.from}→${r.sys.till} | ${r.sys.rooms} room(s)\n`);
+    txt += `\n`;
+  }
+
+  if (sel.nosys && nosys.length) {
+    txt += `IN HOTEL · NOT IN SYSTEM (${nosys.length})\n${'-'.repeat(40)}\n`;
+    nosys.forEach(r => txt += `  Voucher ${r.rsv} — ${r.hotel.name} | ${r.hotel.from}→${r.hotel.till} | ${r.hotel.rooms} room(s)\n`);
+    txt += `\n`;
+  }
+
+  if (sel.matched && matched.length) {
+    txt += `MATCHED (${matched.length})\n${'-'.repeat(40)}\n`;
+    matched.forEach(r => txt += `  RSV# ${r.sys.rsv} — ${r.sys.guest}\n`);
+  }
+
+  return txt;
+}
+
+function exportText() {
+  const txt = buildReportText();
+  const blob = new Blob([txt], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `Comparison_Report_${new Date().toISOString().slice(0,10)}.txt`;
+  a.click();
+  toast(t('toastText'));
+}
+
+function exportExcel() {
+  const all     = currentResults;
+  const now     = new Date().toLocaleString();
+  const sel     = getExportSections();
+
+  // Filter rows based on selections
+  const exportRows = all.filter(r => {
+    if (r.status === 'match'   && !sel.matched) return false;
+    if (r.status === 'diff'    && !sel.diffs)   return false;
+    if (r.status === 'nohotel' && !sel.nohotel) return false;
+    if (r.status === 'nosys'   && !sel.nosys)   return false;
+    return true;
+  });
+
+  function doXlsx(XLSX) {
+    const wb = XLSX.utils.book_new();
+
+    // ── Summary sheet ──────────────────────────────────────────────
+    const matched = all.filter(r=>r.status==='match');
+    const diffs   = all.filter(r=>r.status==='diff');
+    const nohotel = all.filter(r=>r.status==='nohotel');
+    const nosys   = all.filter(r=>r.status==='nosys');
+    const summaryRows = [
+      ['Reservation Comparison Report'],
+      [`Generated: ${now}`],
+      [],
+      ['SUMMARY',''],
+      ['Total Entries', all.length],
+    ];
+    if (sel.matched) summaryRows.push(['Matched', matched.length]);
+    if (sel.diffs)   summaryRows.push(['Differences', diffs.length]);
+    if (sel.nohotel) summaryRows.push(['Not in Hotel', nohotel.length]);
+    if (sel.nosys)   summaryRows.push(['Not in System', nosys.length]);
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
+
+    // ── Data sheet ─────────────────────────────────────────────────
+    const headers = ['RSV#','Guest Name','Hotel','Status','Arrival (System)','Arrival (Hotel)','Departure (System)','Departure (Hotel)','Rooms (System)','Rooms (Hotel)','Diff Fields','Hotel Confirmation'];
+    const dataRows = [headers];
+    exportRows.forEach(r => {
+      const rsv   = r.status==='nosys' ? r.rsv        : r.sys.rsv;
+      const guest = r.status==='nosys' ? r.hotel.name : r.sys.guest;
+      const hotel = r.sys ? r.sys.hotel : '';
+      const htlId = r.sys ? r.sys.htlRsv : '';
+      const status = {match:'MATCH',diff:'DIFF',nohotel:'NOT IN HOTEL',nosys:'NOT IN SYSTEM'}[r.status];
+      const sFrom = r.sys   ? r.sys.from   : '';
+      const sTill = r.sys   ? r.sys.till   : '';
+      const sRooms= r.sys   ? r.sys.rooms  : '';
+      const hFrom = r.hotel ? r.hotel.from : '';
+      const hTill = r.hotel ? r.hotel.till : '';
+      const hRooms= r.hotel ? r.hotel.rooms: '';
+      const diffFields = r.diffs ? r.diffs.map(d=>d.f).join('; ') : '';
+      dataRows.push([rsv,guest,hotel,status,sFrom,hFrom,sTill,hTill,sRooms,hRooms,diffFields,htlId]);
+    });
+    const wsData = XLSX.utils.aoa_to_sheet(dataRows);
+    // Column widths
+    wsData['!cols'] = [14,30,18,16,16,16,18,18,14,14,20,20].map(w=>({wch:w}));
+    XLSX.utils.book_append_sheet(wb, wsData, 'Reservations');
+
+    XLSX.writeFile(wb, `Comparison_Report_${new Date().toISOString().slice(0,10)}.xlsx`);
+    toast(t('toastExcel'));
+  }
+
+  // Load SheetJS if not already loaded
+  if (window.XLSX) {
+    doXlsx(window.XLSX);
+  } else {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = () => doXlsx(window.XLSX);
+    s.onerror = () => toast('Could not load XLSX library. Check your internet connection.');
+    document.head.appendChild(s);
+  }
+}
+
+function exportImage() {
+  const all     = currentResults;
+  const diffs   = all.filter(r=>r.status==='diff');
+  const nohotel = all.filter(r=>r.status==='nohotel');
+  const nosys   = all.filter(r=>r.status==='nosys');
+  const matched = all.filter(r=>r.status==='match');
+  const sel     = getExportSections();
+
+  const showDiffs   = sel.diffs   && diffs.length;
+  const showNohotel = sel.nohotel && nohotel.length;
+  const showNosys   = sel.nosys   && nosys.length;
+  const showMatched = sel.matched && matched.length;
+
+  const canvas  = document.createElement('canvas');
+  const scale   = 2;
+  const W = 900, rowH = 28, pad = 28;
+  const headerH = 180;
+  const summaryH = 130;
+  const diffH   = showDiffs   ? 50 + diffs.length * 50   : 0;
+  const nhH     = showNohotel ? 40 + nohotel.length * rowH : 0;
+  const nsH     = showNosys   ? 40 + nosys.length * rowH  : 0;
+  const matchH  = showMatched ? 40 + matched.length * rowH : 0;
+  const totalH  = headerH + summaryH + diffH + nhH + nsH + matchH + pad*3;
+
+  canvas.width  = W * scale;
+  canvas.height = totalH * scale;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(scale, scale);
+
+  // Background
+  ctx.fillStyle = '#07090f';
+  ctx.fillRect(0, 0, W, totalH);
+
+  // Header
+  ctx.fillStyle = '#0f1623';
+  ctx.fillRect(0, 0, W, headerH - 10);
+  ctx.strokeStyle = '#243347';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, headerH-10); ctx.lineTo(W, headerH-10); ctx.stroke();
+
+  ctx.font = 'bold 22px IBM Plex Sans, sans-serif';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText('Reservation', pad, 45);
+  ctx.fillStyle = '#00c8ff';
+  ctx.fillText('Comparison', pad + 150, 45);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText('Report', pad + 304, 45);
+
+  ctx.font = '12px IBM Plex Mono, monospace';
+  ctx.fillStyle = '#5a7490';
+  ctx.fillText(`Generated: ${new Date().toLocaleString()}`, pad, 68);
+  ctx.fillText(`Askant Travel · System Files vs Hotel File`, pad, 86);
+
+  // Summary boxes
+  const stats = [
+    {label:'TOTAL',       val:all.length,     color:'#00c8ff'},
+    {label:'MATCHED',     val:matched.length, color:'#00e676'},
+    {label:'DIFFERENCES', val:diffs.length,   color:'#ffd600'},
+    {label:'NOT IN HOTEL',val:nohotel.length, color:'#ff4757'},
+    {label:'NOT IN SYS',  val:nosys.length,   color:'#b388ff'},
+  ];
+  const bW = (W - pad*2 - 8*4) / 5;
+  stats.forEach((s, i) => {
+    const x = pad + i*(bW+8);
+    const y = headerH;
+    ctx.fillStyle = '#0f1623';
+    ctx.strokeStyle = '#243347';
+    roundRect(ctx, x, y, bW, 80, 8);
+    ctx.fill(); ctx.stroke();
+    ctx.font = 'bold 28px IBM Plex Mono, monospace';
+    ctx.fillStyle = s.color;
+    ctx.textAlign = 'center';
+    ctx.fillText(s.val, x+bW/2, y+42);
+    ctx.font = '9px IBM Plex Mono, monospace';
+    ctx.fillStyle = '#5a7490';
+    ctx.fillText(s.label, x+bW/2, y+60);
+    ctx.textAlign = 'left';
+  });
+
+  let y = headerH + summaryH;
+
+  function sectionHeader(label, color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(pad, y+6, 6, 6);
+    ctx.font = 'bold 11px IBM Plex Mono, monospace';
+    ctx.fillStyle = '#5a7490';
+    ctx.fillText(label.toUpperCase(), pad+14, y+15);
+    ctx.strokeStyle = '#243347';
+    ctx.beginPath(); ctx.moveTo(pad, y+22); ctx.lineTo(W-pad, y+22); ctx.stroke();
+    y += 32;
+  }
+
+  function tableRow(cols, colors, bold=false) {
+    ctx.font = `${bold?'bold ':''} 11px IBM Plex Mono, monospace`;
+    const colW = [(W-pad*2)*0.12, (W-pad*2)*0.22, (W-pad*2)*0.16, (W-pad*2)*0.16, (W-pad*2)*0.16, (W-pad*2)*0.18];
+    let x2 = pad;
+    cols.forEach((c,i) => {
+      ctx.fillStyle = colors[i] || '#dde6f0';
+      ctx.fillText(String(c).substring(0,30), x2, y+14);
+      x2 += colW[i];
+    });
+    y += rowH;
+  }
+
+  if (showDiffs) {
+    sectionHeader(`Differences (${diffs.length})`, '#ffd600');
+    tableRow(['RSV#','Guest','Arrival','Departure','Rooms (Sys)','Rooms (Htl)'],
+             ['#5a7490','#5a7490','#5a7490','#5a7490','#5a7490','#5a7490'], true);
+    diffs.forEach(r => {
+      const rSys = r.sys.rooms, rHtl = r.hotel.rooms;
+      tableRow(
+        [`#${r.sys.rsv}`, r.sys.guest.substring(0,22), r.sys.from, r.sys.till, rSys, rHtl],
+        ['#00c8ff','#dde6f0',
+         r.sys.from!==r.hotel.from?'#ffd600':'#00e676',
+         r.sys.till!==r.hotel.till?'#ffd600':'#00e676',
+         rSys!==rHtl?'#ffd600':'#00e676',
+         rSys!==rHtl?'#ffd600':'#00e676']
+      );
+    });
+    y += 10;
+  }
+
+  if (showNohotel) {
+    sectionHeader(`Not in Hotel (${nohotel.length})`, '#ff4757');
+    nohotel.forEach(r => tableRow([`#${r.sys.rsv}`, r.sys.guest.substring(0,30), r.sys.from, r.sys.till, r.sys.rooms, '-'],
+      ['#00c8ff','#ff4757','#dde6f0','#dde6f0','#dde6f0','#5a7490']));
+    y += 10;
+  }
+
+  if (showNosys) {
+    sectionHeader(`Not in System (${nosys.length})`, '#b388ff');
+    nosys.forEach(r => tableRow([`#${r.rsv}`, r.hotel.name.substring(0,30), r.hotel.from, r.hotel.till, '-', r.hotel.rooms],
+      ['#00c8ff','#b388ff','#dde6f0','#dde6f0','#5a7490','#dde6f0']));
+    y += 10;
+  }
+
+  if (showMatched) {
+    sectionHeader(`Matched (${matched.length})`, '#00e676');
+    matched.forEach(r => tableRow([`#${r.sys.rsv}`, r.sys.guest.substring(0,30), r.sys.from, r.sys.till, r.sys.rooms, r.hotel.rooms],
+      ['#00c8ff','#dde6f0','#00e676','#00e676','#00e676','#00e676']));
+  }
+
+  canvas.toBlob(blob => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `Comparison_Report_${new Date().toISOString().slice(0,10)}.png`;
+    a.click();
+    toast(t('toastImg'));
+  });
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w, y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r, y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x, y+r); ctx.arcTo(x,y,x+r,y,r);
+  ctx.closePath();
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+function toast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText='position:fixed;bottom:22px;right:22px;background:#1a2236;border:1px solid #243347;color:#dde6f0;padding:9px 16px;border-radius:8px;font-size:0.77rem;font-family:\'IBM Plex Mono\',monospace;z-index:9999;opacity:0;transition:opacity .3s;max-width:320px;';
+  t.textContent=msg; document.body.appendChild(t);
+  requestAnimationFrame(()=>t.style.opacity='1');
+  setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300);},3000);
+}
+
+
+// ── SMART MULTI-FILE DROP ZONE ────────────────────────────────────────────────
+// Files are auto-classified: hotel files contain "HOTAL"/"hotel" in name or are single-file
+// System files contain "system"/"sys" in name. Unknown → user picks via dropdown.
+let loadedFiles = []; // [{file, type: 'hotel'|'system', text}]
+
+function guessFileType(filename) {
+  const n = filename.toLowerCase();
+  if (n.includes('hotel') || n.includes('hotal') || n.includes('voucher') || n.includes('htl')) return 'hotel';
+  if (n.includes('system') || n.includes('sys') || n.includes('rsv') || n.includes('reservation')) return 'system';
+  return 'unknown';
+}
+
+function renderFileTags() {
+  const wrap = document.getElementById('fileTagsWrap');
+  const inner = document.getElementById('dropInner');
+  const tagsEl = document.getElementById('fileTags');
+  if (!loadedFiles.length) {
+    wrap.style.display = 'none';
+    inner.style.display = '';
+    return;
+  }
+  inner.style.display = 'none';
+  wrap.style.display = '';
+  tagsEl.innerHTML = loadedFiles.map((lf, i) => {
+    const cls = lf.type === 'hotel' ? 'hotel-tag' : lf.type === 'system' ? 'system-tag' : 'unknown-tag';
+    const icon = lf.type === 'hotel' ? '🏨' : lf.type === 'system' ? '🖥' : '❓';
+    return `<div class="file-tag ${cls}" id="ftag-${i}">
+      <span>${icon}</span>
+      <select class="type-select" onchange="changeFileType(${i},this.value)">
+        <option value="hotel" ${lf.type==='hotel'?'selected':''}>Hotel</option>
+        <option value="system" ${lf.type==='system'?'selected':''}>System</option>
+      </select>
+      <span class="tag-name" title="${lf.file.name}">${lf.file.name}</span>
+      <button class="tag-rm" onclick="removeLoadedFile(${i})" title="Remove">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function changeFileType(idx, newType) {
+  if (loadedFiles[idx]) {
+    loadedFiles[idx].type = newType;
+    renderFileTags();
+  }
+}
+
+function removeLoadedFile(idx) {
+  loadedFiles.splice(idx, 1);
+  renderFileTags();
+}
+
+async function processSmartFiles(files) {
+  for (const file of files) {
+    const type = guessFileType(file.name);
+    let text = '';
+    try {
+      if (file.name.toLowerCase().endsWith('.pdf')) {
+        text = await extractPdfText(file);
+      } else {
+        text = await file.text();
+      }
+    } catch(e) {
+      toast('Could not read: ' + file.name);
+      continue;
+    }
+    // Check text content for additional clues if type unknown
+    let finalType = type;
+    if (type === 'unknown') {
+      const lower = text.toLowerCase();
+      if (lower.includes('askant travel') || lower.includes('voucher no')) finalType = 'hotel';
+      else if (lower.includes('ponsiana hotel') && lower.match(/\bC\s+\d{5,6}\b/)) finalType = 'system';
+    }
+    loadedFiles.push({ file, type: finalType, text });
+  }
+  renderFileTags();
+  toast(`${files.length} file(s) loaded. Check types above then click Run Comparison.`);
+}
+
+function initSmartDrop() {
+  const zone = document.getElementById('smartDrop');
+  const inp  = document.getElementById('smartFileInput');
+
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) processSmartFiles([...e.dataTransfer.files]);
+  });
+
+  inp.addEventListener('change', e => {
+    if (e.target.files.length) {
+      processSmartFiles([...e.target.files]);
+      e.target.value = ''; // reset so same files can be re-added if needed
+    }
+  });
+}
+
+// ── LANGUAGE TOGGLE ──────────────────────────────────────────────────────────
+let currentLang = 'en';
+
+const TRANSLATIONS = {
+  en: {
+    mainTitle:      'ALTANTAWY <span>Comparison</span> Tool',
+    mainSubtitle:   'FOR PONSIANA HOTEL',
+    langBtn:        '🌐 عربي',
+    btnClear:       '🗑 Clear All & Reset',
+    compareBtn:     '⚡ Run Comparison',
+    dropTitle:      'Drop files here or <span class="drop-link" onclick="document.getElementById(&apos;smartFileInput&apos;).click()">browse</span>',
+    dropSub:        'Select both Hotel & System files at once — app auto-detects type',
+    dropFormats:    'PDF · TXT · CSV &nbsp;·&nbsp; Multiple files supported',
+    addMoreBtn:     '＋ Add More Files',
+    powerTag:       '⚡ THIS APP IS POWERED BY',
+    searchPlaceholder: 'Search by RSV# or guest name...',
+    resultTitle:    (sys, htl) => `// ${sys} system RSVs checked against ${htl} hotel vouchers`,
+    statLabels:     ['Total','Matched','Differences','Not in Hotel','Not in System'],
+    filterAll:      n => `All (${n})`,
+    filterMatch:    n => `✓ Matched (${n})`,
+    filterDiff:     n => `⚠ Differences (${n})`,
+    filterNoHotel:  n => `✗ Not in Hotel (${n})`,
+    filterNoSys:    n => `◈ Not in System (${n})`,
+    sectionDiff:    'Differences Found',
+    sectionNoHotel: 'In System · Not in Hotel',
+    sectionNoSys:   'In Hotel · Not in System',
+    sectionMatch:   'Matched',
+    badgeMatch:     '✓ MATCH',
+    badgeDiff:      '⚠ DIFF',
+    badgeNoHotel:   '✗ NOT IN HOTEL',
+    badgeNoSys:     '◈ NOT IN SYSTEM',
+    exportLabel:    'Export:',
+    exportText:     '📄 Text Report',
+    exportExcel:    '📊 Excel',
+    exportImg:      '🖼 Image',
+    pending:        'Pending confirmation',
+    hotelLabel:     'Hotel File(s)',
+    hotelTitle:     '🏨 Hotel Main File',
+    sysLabel:       'System File(s)',
+    sysTitle:       '🖥 System Files',
+    addHotel:       '＋ Add Hotel File Manually',
+    addSys:         '＋ Add System File Manually',
+    pasteHotel:     'Or paste hotel text',
+    pasteSys:       'Or paste system text',
+    pasteHotelPh:   'Paste hotel reservation text here...',
+    pasteSysPh:     'Paste system reservation text here...',
+    slotHotelLbl:   'Hotel file — click or drag & drop',
+    slotSysLbl:     'System file — click or drag & drop',
+    hotelIdTag:     id => `Hotel ID: ${id}`,
+    guestNameHotel: 'Guest Name (Hotel):',
+    confirmLabel:   'Confirmation:',
+    hotelLabel2:    'Hotel:',
+    diffChipLabel:  (n,ids) => `⚠ ${n} Difference${n>1?'s':''}: ${ids}`,
+    nhChipLabel:    (n,ids) => `✗ ${n} Not in Hotel: ${ids}`,
+    nsChipLabel:    (n,ids) => `◈ ${n} Not in System: ${ids}`,
+    fieldArrival:   'Arrival', fieldDep:'Departure', fieldRooms:'Rooms',
+    tblField:       'Field', tblSystem:'System', tblHotel:'Hotel', tblStatus:'Status',
+    statTotal:      'Total', statMatch:'Matched', statDiff:'Differences', statNoHotel:'Not in Hotel', statNoSys:'Not in System',
+    chkInclude:     'Include:',
+    chkLblMatch:    'Matched', chkLblNoHotel:'Not in Hotel', chkLblNoSys:'Not in System', chkLblDiff:'Differences',
+    resultsTitle:   (sys,htl) => `// ${sys} system RSVs vs ${htl} hotel vouchers`,
+    alertNoHotel:   (rsv,from,till,rooms) => `⚠ RSV# ${rsv} found in System but NOT in Hotel file.<br>System: ${from} → ${till} | ${rooms} room(s)`,
+    alertNoSys:     (rsv,from,till,rooms) => `◈ Voucher ${rsv} found in Hotel file but NOT in System.<br>Hotel: ${from} → ${till} | ${rooms} room(s)`,
+    mismatch:       '⚠ MISMATCH',
+    searchCount:    (n,v) => `${n} result${n!==1?'s':''} matching "${v}"`,
+    notInHotelMsg:  (rsv,from,till,rooms) => `⚠ RSV# ${rsv} found in System but NOT in Hotel file.<br>System: ${from} → ${till} | ${rooms} room(s)`,
+    notInSysMsg:    (rsv,from,till,rooms) => `◈ Voucher ${rsv} found in Hotel file but NOT in System.<br>Hotel: ${from} → ${till} | ${rooms} room(s)`,
+    toastReset:     'Reset complete — ready for new comparison',
+    toastCopied:    '✓ Copied!',
+    toastCopyFail:  'Copy failed — please copy manually',
+    toastText:      'Text report downloaded',
+    toastExcel:     'Excel/CSV report downloaded',
+    toastImg:       'Image report downloaded',
+    reportTitle:    'RESERVATION COMPARISON REPORT',
+    reportGenerated:'Generated:',
+    reportSummary:  'SUMMARY',
+  },
+  ar: {
+    mainTitle:      'أداة <span>المقارنة</span> ALTANTAWY',
+    mainSubtitle:   'لفندق بونسيانا',
+    langBtn:        '🌐 English',
+    btnClear:       '🗑 مسح الكل وإعادة التعيين',
+    compareBtn:     '⚡ تشغيل المقارنة',
+    dropTitle:      'أفلت الملفات هنا أو <span class="drop-link" onclick="document.getElementById(&apos;smartFileInput&apos;).click()">تصفح</span>',
+    dropSub:        'اختر ملفات الفندق والنظام معاً — التطبيق يحدد النوع تلقائياً',
+    dropFormats:    'PDF · TXT · CSV &nbsp;·&nbsp; ملفات متعددة مدعومة',
+    addMoreBtn:     '＋ إضافة المزيد من الملفات',
+    powerTag:       '⚡ هذا التطبيق مُقدَّم من',
+    searchPlaceholder: 'ابحث برقم الحجز أو اسم الضيف...',
+    resultTitle:    (sys, htl) => `// تم فحص ${sys} حجز نظام مقابل ${htl} إيصال فندقي`,
+    statLabels:     ['المجموع','متطابق','اختلافات','غير موجود بالفندق','غير موجود بالنظام'],
+    filterAll:      n => `الكل (${n})`,
+    filterMatch:    n => `✓ متطابق (${n})`,
+    filterDiff:     n => `⚠ اختلافات (${n})`,
+    filterNoHotel:  n => `✗ غير موجود بالفندق (${n})`,
+    filterNoSys:    n => `◈ غير موجود بالنظام (${n})`,
+    sectionDiff:    'اختلافات موجودة',
+    sectionNoHotel: 'في النظام · غير موجود بالفندق',
+    sectionNoSys:   'في الفندق · غير موجود بالنظام',
+    sectionMatch:   'متطابق',
+    badgeMatch:     '✓ متطابق',
+    badgeDiff:      '⚠ يختلف',
+    badgeNoHotel:   '✗ غير موجود بالفندق',
+    badgeNoSys:     '◈ غير موجود بالنظام',
+    exportLabel:    'تصدير:',
+    exportText:     '📄 تقرير نصي',
+    exportExcel:    '📊 إكسل',
+    exportImg:      '🖼 صورة',
+    pending:        'في انتظار التأكيد',
+    hotelLabel:     'ملف(ات) الفندق',
+    hotelTitle:     '🏨 الملف الرئيسي للفندق',
+    sysLabel:       'ملف(ات) النظام',
+    sysTitle:       '🖥 ملفات النظام',
+    addHotel:       '＋ إضافة ملف فندق يدوياً',
+    addSys:         '＋ إضافة ملف نظام يدوياً',
+    pasteHotel:     'أو الصق نص الفندق',
+    pasteSys:       'أو الصق نص النظام',
+    pasteHotelPh:   'الصق نص حجوزات الفندق هنا...',
+    pasteSysPh:     'الصق نص حجوزات النظام هنا...',
+    slotHotelLbl:   'ملف الفندق — انقر أو اسحب وأفلت',
+    slotSysLbl:     'ملف النظام — انقر أو اسحب وأفلت',
+    hotelIdTag:     id => `رقم الفندق: ${id}`,
+    guestNameHotel: 'اسم الضيف (الفندق):',
+    confirmLabel:   'التأكيد:',
+    hotelLabel2:    'الفندق:',
+    diffChipLabel:  (n,ids) => `⚠ ${n} اختلاف: ${ids}`,
+    nhChipLabel:    (n,ids) => `✗ ${n} غير موجود بالفندق: ${ids}`,
+    nsChipLabel:    (n,ids) => `◈ ${n} غير موجود بالنظام: ${ids}`,
+    fieldArrival:   'الوصول', fieldDep:'المغادرة', fieldRooms:'الغرف',
+    tblField:       'الحقل', tblSystem:'النظام', tblHotel:'الفندق', tblStatus:'الحالة',
+    statTotal:      'المجموع', statMatch:'متطابق', statDiff:'اختلافات', statNoHotel:'غير موجود بالفندق', statNoSys:'غير موجود بالنظام',
+    chkInclude:     'تضمين:',
+    chkLblMatch:    'متطابق', chkLblNoHotel:'غير موجود بالفندق', chkLblNoSys:'غير موجود بالنظام', chkLblDiff:'اختلافات',
+    resultsTitle:   (sys,htl) => `// ${sys} حجز نظام مقابل ${htl} إيصال فندقي`,
+    alertNoHotel:   (rsv,from,till,rooms) => `⚠ الحجز #${rsv} موجود في النظام لكن غير موجود في ملف الفندق.<br>النظام: ${from} ← ${till} | ${rooms} غرفة`,
+    alertNoSys:     (rsv,from,till,rooms) => `◈ الإيصال ${rsv} موجود في الفندق لكن غير موجود في النظام.<br>الفندق: ${from} ← ${till} | ${rooms} غرفة`,
+    mismatch:       '⚠ غير متطابق',
+    searchCount:    (n,v) => `${n} نتيجة لـ "${v}"`,
+    notInHotelMsg:  (rsv,from,till,rooms) => `⚠ الحجز #${rsv} موجود في النظام لكن غير موجود في ملف الفندق.<br>النظام: ${from} ← ${till} | ${rooms} غرفة`,
+    notInSysMsg:    (rsv,from,till,rooms) => `◈ الإيصال ${rsv} موجود في الفندق لكن غير موجود في النظام.<br>الفندق: ${from} ← ${till} | ${rooms} غرفة`,
+    toastReset:     'تمت إعادة التعيين — جاهز لمقارنة جديدة',
+    toastCopied:    '✓ تم النسخ!',
+    toastCopyFail:  'فشل النسخ — يرجى النسخ يدوياً',
+    toastText:      'تم تنزيل التقرير النصي',
+    toastExcel:     'تم تنزيل ملف Excel (xlsx)',
+    toastImg:       'تم تنزيل الصورة',
+    reportTitle:    'تقرير مقارنة الحجوزات',
+    reportGenerated:'تاريخ الإنشاء:',
+    reportSummary:  'ملخص',
+  }
+};
+
+function t(key, ...args) {
+  const T = TRANSLATIONS[currentLang];
+  const val = T[key];
+  if (typeof val === 'function') return val(...args);
+  return val || TRANSLATIONS['en'][key] || key;
+}
+
+function toggleLang() {
+  currentLang = currentLang === 'en' ? 'ar' : 'en';
+  const html = document.getElementById('appHtml');
+  html.lang = currentLang;
+  html.dir  = currentLang === 'ar' ? 'rtl' : 'ltr';
+  applyTranslations();
+  if (currentResults.length) renderResults();
+}
+
+function applyTranslations() {
+  const T = TRANSLATIONS[currentLang];
+  // Header
+  document.getElementById('mainTitle').innerHTML = T.mainTitle;
+  document.getElementById('mainSubtitle').innerHTML = T.mainSubtitle;
+  // Buttons
+  document.getElementById('langBtn').textContent = T.langBtn;
+  document.getElementById('btnClear').innerHTML = T.btnClear;
+  const cmpBtn = document.getElementById('compareBtn');
+  if (cmpBtn) cmpBtn.innerHTML = T.compareBtn;
+  // Drop zone
+  const di = document.getElementById('dropTitle');
+  if (di) di.innerHTML = T.dropTitle;
+  const ds = document.getElementById('dropSub');
+  if (ds) ds.textContent = T.dropSub;
+  const df = document.getElementById('dropFormats');
+  if (df) df.innerHTML = T.dropFormats;
+  const amb = document.querySelector('.add-more-btn');
+  if (amb) amb.textContent = T.addMoreBtn;
+  // Search box
+  const sb = document.querySelector('.search-box');
+  if (sb) sb.placeholder = T.searchPlaceholder;
+  // Powered-by footer — intentionally NOT translated, stays in English always
+  // Upload cards
+  const [hl, sl] = document.querySelectorAll('.card-label');
+  if (hl) hl.textContent = T.hotelLabel;
+  if (sl) sl.textContent = T.sysLabel;
+  const [ht, st] = document.querySelectorAll('.card-title');
+  if (ht) ht.textContent = T.hotelTitle;
+  if (st) st.textContent = T.sysTitle;
+  // Add file buttons
+  const addBtns = document.querySelectorAll('.add-file-btn');
+  if (addBtns[0]) addBtns[0].textContent = T.addHotel;
+  if (addBtns[1]) addBtns[1].textContent = T.addSys;
+  // Paste toggles
+  const hpt = document.querySelector('#hotelPasteToggle span:last-child');
+  if (hpt) hpt.textContent = T.pasteHotel;
+  const spt = document.querySelector('#systemPasteToggle span:last-child');
+  if (spt) spt.textContent = T.pasteSys;
+  // Textareas
+  const hpa = document.getElementById('hotelPaste');
+  if (hpa) hpa.placeholder = T.pasteHotelPh;
+  const spa = document.getElementById('systemPaste');
+  if (spa) spa.placeholder = T.pasteSysPh;
+  // Slot labels
+  document.querySelectorAll('#hotelSlots .slot-label').forEach(el => el.textContent = T.slotHotelLbl);
+  document.querySelectorAll('#systemSlots .slot-label').forEach(el => el.textContent = T.slotSysLbl);
+}
+
+// ── PASTE SECTION TOGGLE ──────────────────────────────────────────────────────
+function togglePaste(type) {
+  const section = document.getElementById(type + 'PasteSection');
+  const btn     = document.getElementById(type + 'PasteToggle');
+  section.classList.toggle('visible');
+  btn.classList.toggle('open');
+}
+
+// ── INIT — starts EMPTY (no demo auto-load) ───────────────────────────────────
+window.addEventListener('load', () => {
+  addHotelSlot();
+  addSystemSlot();
+  initSmartDrop();
+  applyTranslations();
+  // DO NOT auto-load demo — fresh start every time
+});
+</script>
+
+<div class="powered-footer">
+  <div class="pf-tag" id="pfTag">⚡ THIS APP IS POWERED BY</div>
+  <div class="pf-name">MR. <span>HUSSIEN ALTANTAWY</span></div>
+  <div class="pf-contacts" dir="ltr" style="unicode-bidi:embed;">
+    <div class="pf-contact" dir="ltr">📱 <a href="tel:+201281806461" dir="ltr">+2 012 81 80 64 61</a></div>
+    <div class="pf-contact" dir="ltr">📧 <a href="mailto:HUSSIEN.ALTANTAWY@YAHOO.COM" dir="ltr">HUSSIEN.ALTANTAWY@YAHOO.COM</a></div>
+  </div>
+</div>
+</body>
+</html>
