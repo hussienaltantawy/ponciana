@@ -1367,6 +1367,21 @@ function parseHotelText(text) {
     result[v].rooms += n;
   }
 
+  // NO-VOUCHER GROUP ENTRIES: hotel room ID only, no 5-6 digit voucher number
+  // e.g. "3302 Askant Travel 2026-02-26 2026-02-28 SAUDI ARABIA Askant Travel 26 TA Room Only CONFIRMED"
+  // Key stored as "HID-3302" so they surface as "Not in System"
+  const noVoucherRe = /\b(\d{4})\b[^\n]*?(\d{4}-\d{2}-\d{2})\s+(\d{4}-\d{2}-\d{2})(?!\s+\d{5,6}\b)[^\n]*?Askant\s+Travel\s*(\d+)\s+TA(?:\s+([A-Za-z][A-Za-z &\/]+?))?(?:\s+(?:CONFIRMED|ON HOLD)|\s*$)/gim;
+  for (const m of text.matchAll(noVoucherRe)) {
+    const [, hid, a, d, r, mealRaw] = m;
+    const key = 'HID-' + hid;
+    if (result[key]) continue;
+    const n = parseInt(r, 10);
+    if (isNaN(n) || n <= 0 || n > 200) continue;
+    const meal = normalizeMeal(mealRaw || 'Room Only');
+    if (!result[key]) result[key] = { name: 'Group (Hotel ID: ' + hid + ')', from: ymd(a), till: ymd(d), rooms: 0, meal };
+    result[key].rooms += n;
+  }
+
   // GENERIC FALLBACK: if neither found anything, try date date voucherNo N at end-of-line
   if (Object.keys(result).length === 0) {
     const genRe = /(\d{4}-\d{2}-\d{2})\s+(\d{4}-\d{2}-\d{2})\s+(\d{5,6})\b.*?(\d{1,2})\s*(?:\r?\n|$)/gm;
@@ -1723,7 +1738,9 @@ function buildItem(r) {
   const bm = {match:'bd-match',diff:'bd-diff',nohotel:'bd-nohotel',nosys:'bd-nosys'};
   const bt = {match:t('badgeMatch'), diff:t('badgeDiff'), nohotel:t('badgeNoHotel'), nosys:t('badgeNoSys')};
   const rsv   = r.status==='nosys' ? r.rsv : r.sys.rsv;
-  const guest = r.status==='nosys' ? r.hotel.name : r.sys.guest;
+  const guest = r.status==='nosys' ? (r.hotel.name || r.rsv) : r.sys.guest;
+  // For no-voucher hotel-only group entries, show Hotel ID instead of HID- prefix
+  const displayRsv = rsv.startsWith('HID-') ? '🏨 Hotel ID: ' + rsv.replace('HID-','') : '#' + rsv;
   const hotel = r.sys ? r.sys.hotel : '';
   const htlId = (r.sys && r.sys.htlRsv && r.sys.htlRsv !== 'sent') ? t('hotelIdTag', r.sys.htlRsv) :
                 (r.sys && r.sys.htlRsv === 'sent') ? t('pending') : '';
@@ -1764,8 +1781,8 @@ function buildItem(r) {
 
   return `<div class="result-item st-${r.status}" data-rsv="${rsv}" data-name="${guest.toLowerCase()}">
     <div class="result-header" onclick="this.parentElement.classList.toggle('open')">
-      <div class="rsv-num">#${rsv}</div>
-      <button class="rsv-copy-btn" onclick="copyRsvNum(event, '${rsv}')" title="Copy reservation number">⎘</button>
+      <div class="rsv-num">${displayRsv}</div>
+      ${rsv.startsWith('HID-') ? '' : `<button class="rsv-copy-btn" onclick="copyRsvNum(event, '${rsv}')" title="Copy reservation number">⎘</button>`}
       <div class="guest-name">${guest}</div>
       ${mismatchSummary}
       <div class="htl-tag">${htlId}</div>
