@@ -287,6 +287,24 @@
   .mismatch-chip:hover { background: rgba(90,96,128,.15); }
   .mismatch-chip .copy-icon { font-size: 0.65rem; opacity: .7; }
 
+  /* ── Ignore Mismatch Panel ── */
+  .ignore-panel{background:linear-gradient(145deg,rgba(255,255,255,0.90),rgba(245,247,255,0.86));border:1px solid rgba(160,170,200,0.32);border-left:3px solid rgba(255,152,0,0.70);border-radius:10px;padding:11px 14px;margin-bottom:16px;box-shadow:var(--shadow);}
+  .ignore-panel-hdr{display:flex;align-items:center;gap:8px;margin-bottom:9px;}
+  .ignore-panel-title{font-size:0.72rem;font-family:'IBM Plex Mono',monospace;color:#ff9800;text-transform:uppercase;letter-spacing:.8px;font-weight:700;}
+  .ignore-panel-desc{font-size:0.68rem;font-family:'IBM Plex Mono',monospace;color:var(--muted);margin-left:auto;}
+  .ignore-chks{display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
+  .ignore-chk-group{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;}
+  .ignore-chk-group input[type="checkbox"]{display:none;}
+  .ignore-chk-box{width:17px;height:17px;border-radius:4px;border:1.5px solid rgba(255,152,0,0.40);background:rgba(255,152,0,0.06);display:inline-flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;}
+  .ignore-chk-group input:checked + .ignore-chk-box{border-color:#ff9800;background:rgba(255,152,0,0.18);}
+  .ignore-chk-group input:checked + .ignore-chk-box::after{content:'✓';font-size:0.72rem;color:#ff9800;font-weight:700;line-height:1;}
+  .ignore-chk-label{font-size:0.76rem;font-family:'IBM Plex Mono',monospace;color:var(--muted);transition:color .2s;}
+  .ignore-chk-group input:checked ~ .ignore-chk-label{color:#ff9800;}
+  [data-theme="dark"] .ignore-panel{background:#0f1623;border-color:#243347;border-left-color:rgba(255,152,0,0.70);}
+  [data-theme="dark"] .ignore-chk-box{background:rgba(255,152,0,0.06);border-color:rgba(255,152,0,0.30);}
+  [data-theme="dark"] .ignore-chk-group input:checked + .ignore-chk-box{border-color:#ff9800;background:rgba(255,152,0,0.15);}
+  [data-theme="dark"] .ignore-panel-title{color:#ffb74d;}
+
   /* Export toolbar */
   .export-bar {
     display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; padding: 12px 14px;
@@ -1057,6 +1075,35 @@
   </div>
 </div>
 
+<div class="ignore-panel">
+  <div class="ignore-panel-hdr">
+    <span style="font-size:1.1rem">🚫</span>
+    <span class="ignore-panel-title">Ignore Mismatch</span>
+    <span class="ignore-panel-desc">Checked fields will be skipped during comparison — results update instantly</span>
+  </div>
+  <div class="ignore-chks">
+    <label class="ignore-chk-group">
+      <input type="checkbox" id="ignoreArrival" onchange="rerunIfHasResults()">
+      <span class="ignore-chk-box"></span>
+      <span class="ignore-chk-label">📅 Arrival</span>
+    </label>
+    <label class="ignore-chk-group">
+      <input type="checkbox" id="ignoreDeparture" onchange="rerunIfHasResults()">
+      <span class="ignore-chk-box"></span>
+      <span class="ignore-chk-label">📅 Departure</span>
+    </label>
+    <label class="ignore-chk-group">
+      <input type="checkbox" id="ignoreRooms" onchange="rerunIfHasResults()">
+      <span class="ignore-chk-box"></span>
+      <span class="ignore-chk-label">🛏 Rooms</span>
+    </label>
+    <label class="ignore-chk-group">
+      <input type="checkbox" id="ignoreMeal" onchange="rerunIfHasResults()">
+      <span class="ignore-chk-box"></span>
+      <span class="ignore-chk-label">🍽 Meal Plan</span>
+    </label>
+  </div>
+</div>
 <button class="compare-btn" onclick="runComparison()" id="compareBtn" data-en="⚡ Run Comparison" data-ar="⚡ تشغيل المقارنة">⚡ Run Comparison</button>
 <div id="results"></div>
 
@@ -1161,12 +1208,13 @@ const SYSTEM_DATA = [
 let hotelMap       = {};
 let systemList     = [];
 let currentResults = [];
+let rawResults     = [];  // stores all diffs before ignore flags are applied
 let currentFilter  = 'all';
 let currentSearch  = '';
 
 // ── HARD RESET — truly starts fresh, no demo ─────────────────────────────────
 function hardReset() {
-  hotelMap = {}; systemList = []; currentResults = []; currentFilter = 'all'; currentSearch = '';
+  hotelMap = {}; systemList = []; currentResults = []; rawResults = []; currentFilter = 'all'; currentSearch = '';
   loadedFiles = [];
   document.getElementById('hotelSlots').innerHTML = '';
   document.getElementById('systemSlots').innerHTML = '';
@@ -1271,6 +1319,20 @@ async function extractPdfText(file) {
   return out;
 }
 
+// ── MEAL PLAN NORMALIZER ──────────────────────────────────────────────────────
+function normalizeMeal(s) {
+  if (!s) return 'Room Only';
+  const m = s.trim().toUpperCase().replace(/\s+/g,' ');
+  if (m === 'R.O' || m === 'RO' || m === 'ROOM ONLY' || m === 'R/O') return 'Room Only';
+  if (m === 'B.B' || m === 'BB' || m === 'B&B' || m === 'BED & BREAKFAST' || m === 'BED AND BREAKFAST') return 'Bed & Breakfast';
+  if (m === 'HB' || m === 'HALF BOARD') return 'Half Board';
+  if (m === 'FB' || m === 'FULL BOARD') return 'Full Board';
+  if (m === 'AI' || m === 'ALL INCLUSIVE') return 'All Inclusive';
+  if (m === 'IFTAR') return 'Iftar';
+  if (m === 'SOHOUR' || m === 'SAHOUR' || m === 'SUHOOR') return 'Sohour';
+  return s.trim();
+}
+
 // ── HOTEL FILE PARSER ─────────────────────────────────────────────────────────
 // Handles Poinciana Hotel PDF (HOTAL_MAIN_FILE.pdf).
 // TWO TABLE FORMATS:
@@ -1289,17 +1351,19 @@ function parseHotelText(text) {
   const topRe = /(\d{4}-\d{2}-\d{2})\s+\d{2}:\d{2}\s+(\d{4}-\d{2}-\d{2})\s+\d{2}:\d{2}\s+(\d{5,6})\b/g;
   for (const m of text.matchAll(topRe)) {
     const [, a, d, v] = m;
-    if (!result[v]) result[v] = { name:'', from:ymd(a), till:ymd(d), rooms:0 };
+    if (!result[v]) result[v] = { name:'', from:ymd(a), till:ymd(d), rooms:0, meal:'Room Only' };
     result[v].rooms++;
   }
 
-  // BOTTOM TABLE: date-only date-only VoucherNo ... Askant Travel N TA
-  // Use [^\n\r]* to avoid crossing lines (when pdf adds newlines between pages)
-  const botRe = /(\d{4}-\d{2}-\d{2})\s+(\d{4}-\d{2}-\d{2})\s+(\d{5,6})\b[^\n\r]*?Askant\s+Travel\s+(\d+)\s+TA/gi;
+  // BOTTOM TABLE: date-only date-only VoucherNo ... Askant Travel N TA [MealPlan] CONFIRMED
+  // Capture meal plan (group 5) between "TA" and "CONFIRMED" or end-of-line
+  const botRe = /(\d{4}-\d{2}-\d{2})\s+(\d{4}-\d{2}-\d{2})\s+(\d{5,6})\b[^\n\r]*?Askant\s+Travel\s*(\d+)\s+TA(?:\s+([A-Za-z][A-Za-z &\/]+?))?(?:\s+(?:CONFIRMED|ON HOLD)|\s*$)/gi;
   for (const m of text.matchAll(botRe)) {
-    const [, a, d, v, r] = m;
+    const [, a, d, v, r, mealRaw] = m;
     const n = parseInt(r, 10);
-    if (!result[v]) result[v] = { name:'', from:ymd(a), till:ymd(d), rooms:0 };
+    const meal = normalizeMeal(mealRaw || 'Room Only');
+    if (!result[v]) result[v] = { name:'', from:ymd(a), till:ymd(d), rooms:0, meal };
+    else if (!result[v].meal || result[v].meal === 'Room Only') result[v].meal = meal;
     result[v].rooms += n;
   }
 
@@ -1359,6 +1423,14 @@ function parseSystemText(text) {
       rooms = roomTypeMatches.reduce((sum, rm) => sum + parseInt(rm[1], 10), 0);
     }
 
+    // ── Extract meal plan from room type string (e.g. "DBL - R.O - City", "DBL - Iftar - City") ──
+    const mealRe = /(?:DBL|TPL|QUAD|SGL|TRP|QUD)\s*-\s*([^-\n\r]+?)\s*-\s*(?:City|city)/gi;
+    const mealMatches = [...rest.matchAll(mealRe)];
+    let meal = 'Room Only';
+    if (mealMatches.length > 0) {
+      meal = normalizeMeal(mealMatches[0][1].trim());
+    }
+
     // ── Strategy B: number after last "view" in the row ──
     if (!rooms || rooms === 0) {
       const lastView = rest.toLowerCase().lastIndexOf('view');
@@ -1393,7 +1465,7 @@ function parseSystemText(text) {
       guest = afterHtlRsv.substring(0, hotelIdx).replace(/-\s*$/, '').replace(/\s+/g, ' ').trim() || rsv;
     }
 
-    out.push({ rsv, from, till, rooms, guest, hotel, htlRsv });
+    out.push({ rsv, from, till, rooms, guest, hotel, htlRsv, meal });
   }
 
   return out;
@@ -1401,6 +1473,38 @@ function parseSystemText(text) {
 
 
 function ymd(s) { const [y,m,d]=s.split('-'); return `${d}/${m}/${y}`; }
+
+// ── IGNORE MISMATCH FLAGS ─────────────────────────────────────────────────────
+function getIgnoreFlags() {
+  return {
+    arrival:   document.getElementById('ignoreArrival')   ? document.getElementById('ignoreArrival').checked   : false,
+    departure: document.getElementById('ignoreDeparture') ? document.getElementById('ignoreDeparture').checked : false,
+    rooms:     document.getElementById('ignoreRooms')     ? document.getElementById('ignoreRooms').checked     : false,
+    meal:      document.getElementById('ignoreMeal')      ? document.getElementById('ignoreMeal').checked      : false,
+  };
+}
+
+// Apply ignore flags to rawResults and re-render without re-parsing files.
+function applyIgnoreFlagsAndRender() {
+  const ign = getIgnoreFlags();
+  currentResults = rawResults.map(r => {
+    if (r.status === 'nohotel' || r.status === 'nosys') return r;
+    const visibleDiffs = (r._allDiffs || []).filter(d => {
+      if (ign.arrival   && d.f === 'Arrival')    return false;
+      if (ign.departure && d.f === 'Departure')  return false;
+      if (ign.rooms     && d.f === 'Rooms')      return false;
+      if (ign.meal      && d.f === 'Meal Plan')  return false;
+      return true;
+    });
+    return { ...r, diffs: visibleDiffs, status: visibleDiffs.length ? 'diff' : 'match' };
+  });
+  renderResults();
+}
+
+// Called when ignore checkboxes change — re-renders instantly without re-parsing files
+function rerunIfHasResults() {
+  if (rawResults.length) applyIgnoreFlagsAndRender();
+}
 
 // ── COMPARISON ────────────────────────────────────────────────────────────────
 function runComparison() {
@@ -1437,6 +1541,8 @@ function runComparison() {
       sysGrouped[sys.rsv] = { ...sys };
     } else {
       sysGrouped[sys.rsv].rooms += sys.rooms;
+      // If meal differs from Room Only, prefer the non-default one
+      if (sys.meal && sys.meal !== 'Room Only') sysGrouped[sys.rsv].meal = sys.meal;
     }
   }
 
@@ -1451,7 +1557,10 @@ function runComparison() {
       if (sys.from  !== h.from)  diffs.push({f:'Arrival',   sv:sys.from,  hv:h.from});
       if (sys.till  !== h.till)  diffs.push({f:'Departure', sv:sys.till,  hv:h.till});
       if (sys.rooms !== h.rooms) diffs.push({f:'Rooms',     sv:sys.rooms, hv:h.rooms});
-      results.push({ status: diffs.length ? 'diff' : 'match', sys, hotel:h, diffs });
+      const sysMeal = sys.meal || 'Room Only';
+      const htlMeal = h.meal   || 'Room Only';
+      if (sysMeal !== htlMeal)   diffs.push({f:'Meal Plan', sv:sysMeal,   hv:htlMeal});
+      results.push({ status: diffs.length ? 'diff' : 'match', sys, hotel:h, diffs, _allDiffs: diffs.slice() });
     }
   }
 
@@ -1461,9 +1570,10 @@ function runComparison() {
   }
 
   currentResults = results;
+  rawResults     = results;
   currentFilter  = 'all';
   currentSearch  = '';
-  renderResults();
+  applyIgnoreFlagsAndRender();
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
@@ -1636,6 +1746,7 @@ function buildItem(r) {
       {f:t('fieldArrival'), sv:r.sys.from,  hv:r.hotel.from},
       {f:t('fieldDep'),     sv:r.sys.till,  hv:r.hotel.till},
       {f:t('fieldRooms'),   sv:r.sys.rooms, hv:r.hotel.rooms},
+      {f:t('fieldMeal'),    sv:r.sys.meal||'Room Only', hv:r.hotel.meal||'Room Only'},
     ]) {
       const ok = String(sv)===String(hv);
       body += `<tr>
@@ -2185,7 +2296,13 @@ const TRANSLATIONS = {
     diffChipLabel:  (n,ids) => `⚠ ${n} Difference${n>1?'s':''}: ${ids}`,
     nhChipLabel:    (n,ids) => `✗ ${n} Not in Hotel: ${ids}`,
     nsChipLabel:    (n,ids) => `◈ ${n} Not in System: ${ids}`,
-    fieldArrival:   'Arrival', fieldDep:'Departure', fieldRooms:'Rooms',
+    fieldArrival:   'Arrival', fieldDep:'Departure', fieldRooms:'Rooms', fieldMeal:'Meal Plan',
+    ignorePanelTitle: 'IGNORE MISMATCH',
+    ignorePanelDesc:  'Checked fields will be skipped — results update instantly',
+    ignoreArrivalLbl: '📅 Arrival',
+    ignoreDepartureLbl: '📅 Departure',
+    ignoreRoomsLbl:   '🛏 Rooms',
+    ignoreMealLbl:    '🍽 Meal Plan',
     tblField:       'Field', tblSystem:'System', tblHotel:'Hotel', tblStatus:'Status',
     statTotal:      'Total', statMatch:'Matched', statDiff:'Differences', statNoHotel:'Not in Hotel', statNoSys:'Not in System',
     chkInclude:     'Include:',
@@ -2258,7 +2375,13 @@ const TRANSLATIONS = {
     diffChipLabel:  (n,ids) => `⚠ ${n} اختلاف: ${ids}`,
     nhChipLabel:    (n,ids) => `✗ ${n} غير موجود بالفندق: ${ids}`,
     nsChipLabel:    (n,ids) => `◈ ${n} غير موجود بالنظام: ${ids}`,
-    fieldArrival:   'الوصول', fieldDep:'المغادرة', fieldRooms:'الغرف',
+    fieldArrival:   'الوصول', fieldDep:'المغادرة', fieldRooms:'الغرف', fieldMeal:'نوع الوجبة',
+    ignorePanelTitle: 'تجاهل التعارض',
+    ignorePanelDesc:  'الحقول المحددة ستُتجاهل — النتائج تُحدَّث فوراً',
+    ignoreArrivalLbl: '📅 تاريخ الوصول',
+    ignoreDepartureLbl: '📅 تاريخ المغادرة',
+    ignoreRoomsLbl:   '🛏 الغرف',
+    ignoreMealLbl:    '🍽 نوع الوجبة',
     tblField:       'الحقل', tblSystem:'النظام', tblHotel:'الفندق', tblStatus:'الحالة',
     statTotal:      'المجموع', statMatch:'متطابق', statDiff:'اختلافات', statNoHotel:'غير موجود بالفندق', statNoSys:'غير موجود بالنظام',
     chkInclude:     'تضمين:',
@@ -2353,6 +2476,14 @@ function applyTranslations() {
   // Slot labels
   document.querySelectorAll('#hotelSlots .slot-label').forEach(el => el.textContent = T.slotHotelLbl);
   document.querySelectorAll('#systemSlots .slot-label').forEach(el => el.textContent = T.slotSysLbl);
+  // Ignore panel
+  const ipt = document.querySelector('.ignore-panel-title');
+  if (ipt) ipt.textContent = T.ignorePanelTitle;
+  const ipd = document.querySelector('.ignore-panel-desc');
+  if (ipd) ipd.textContent = T.ignorePanelDesc;
+  const ignLabels = document.querySelectorAll('.ignore-chk-label');
+  const ignKeys = [T.ignoreArrivalLbl, T.ignoreDepartureLbl, T.ignoreRoomsLbl, T.ignoreMealLbl];
+  ignLabels.forEach((el, i) => { if (ignKeys[i]) el.textContent = ignKeys[i]; });
 }
 
 // ── PASTE SECTION TOGGLE ──────────────────────────────────────────────────────
@@ -2378,7 +2509,7 @@ window.addEventListener('load', () => {
   <div class="pf-name">MR. <span>HUSSIEN ALTANTAWY</span></div>
   <div class="pf-contacts" dir="ltr" style="unicode-bidi:embed;">
     <div class="pf-contact" dir="ltr">📱 <a href="tel:+201281806461" dir="ltr">+2 012 81 80 64 61</a></div>
-    <div class="pf-contact" dir="ltr">📧 <a href="mailto:HUSSIEN.ALTANTAWY@YAHOO.COM" dir="ltr">HUSSIEN.ALTANTAWY@YAHOO.COM</a></div>
+    <div class="pf-contact" dir="ltr">📧 <a href="mailto:hussien.altantawy@yahoo.com" dir="ltr">HUSSIEN.ALTANTAWY@YAHOO.COM</a></div>
   </div>
 </div>
 
