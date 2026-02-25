@@ -305,6 +305,64 @@
   [data-theme="dark"] .ignore-chk-group input:checked + .ignore-chk-box{border-color:#ff9800;background:rgba(255,152,0,0.15);}
   [data-theme="dark"] .ignore-panel-title{color:#ffb74d;}
 
+  /* ── Maybe Compatible Box ── */
+  .maybe-box {
+    margin-top: 10px;
+    border: 1.5px dashed rgba(99, 179, 237, 0.50);
+    border-radius: 8px;
+    padding: 9px 12px;
+    background: rgba(99, 179, 237, 0.05);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .maybe-box-hdr {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+    font-size: 0.68rem; color: #63b3ed; text-transform: uppercase; letter-spacing: .7px; font-weight: 700;
+  }
+  .maybe-box-hdr .maybe-icon { font-size: 1rem; }
+  .maybe-candidates { display: flex; flex-direction: column; gap: 6px; }
+  .maybe-candidate {
+    display: flex; align-items: flex-start; gap: 9px;
+    background: rgba(99,179,237,0.06); border: 1px solid rgba(99,179,237,0.20);
+    border-radius: 6px; padding: 7px 10px; cursor: pointer; transition: all .2s;
+  }
+  .maybe-candidate:hover { background: rgba(99,179,237,0.12); border-color: rgba(99,179,237,0.40); }
+  .maybe-candidate.confirmed {
+    background: rgba(0,230,118,0.08); border-color: rgba(0,230,118,0.40);
+    border-style: solid;
+  }
+  .maybe-chk-wrap { flex-shrink: 0; padding-top: 1px; }
+  .maybe-chk {
+    width: 18px; height: 18px; border-radius: 4px; border: 2px solid rgba(99,179,237,0.50);
+    background: transparent; display: inline-flex; align-items: center; justify-content: center;
+    transition: all .2s; cursor: pointer; flex-shrink: 0;
+  }
+  .maybe-candidate.confirmed .maybe-chk {
+    background: rgba(0,230,118,0.18); border-color: #00e676;
+  }
+  .maybe-candidate.confirmed .maybe-chk::after { content: '✓'; font-size: 0.75rem; color: #00e676; font-weight: 700; line-height: 1; }
+  .maybe-info { flex: 1; font-size: 0.73rem; }
+  .maybe-rsv { color: #63b3ed; font-weight: 700; font-size: 0.78rem; }
+  .maybe-candidate.confirmed .maybe-rsv { color: #00e676; }
+  .maybe-details { color: var(--muted); margin-top: 2px; font-size: 0.68rem; }
+  .maybe-score { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 4px; }
+  .score-tag {
+    font-size: 0.62rem; padding: 1px 6px; border-radius: 4px; font-weight: 600;
+    background: rgba(0,230,118,0.12); color: #00e676; border: 1px solid rgba(0,230,118,0.25);
+  }
+  .score-tag.no { background: rgba(255,71,87,0.10); color: #ff4757; border-color: rgba(255,71,87,0.25); }
+  .confirmed-banner {
+    display: none; align-items: center; gap: 6px; margin-top: 8px;
+    font-size: 0.72rem; color: #00e676; font-family: 'IBM Plex Mono', monospace;
+    padding: 5px 9px; background: rgba(0,230,118,0.07); border-radius: 6px;
+    border: 1px solid rgba(0,230,118,0.20);
+  }
+  .confirmed-banner.visible { display: flex; }
+  [data-theme="dark"] .maybe-box { border-color: rgba(99,179,237,0.30); background: rgba(99,179,237,0.04); }
+  [data-theme="dark"] .maybe-candidate { background: rgba(99,179,237,0.05); border-color: rgba(99,179,237,0.15); }
+  [data-theme="dark"] .maybe-candidate:hover { background: rgba(99,179,237,0.10); border-color: rgba(99,179,237,0.35); }
+  [data-theme="dark"] .maybe-candidate.confirmed { background: rgba(0,230,118,0.07); border-color: rgba(0,230,118,0.30); }
+  [data-theme="dark"] .maybe-details { color: #5a7490; }
+
   /* Export toolbar */
   .export-bar {
     display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; padding: 12px 14px;
@@ -1215,6 +1273,7 @@ let currentSearch  = '';
 // ── HARD RESET — truly starts fresh, no demo ─────────────────────────────────
 function hardReset() {
   hotelMap = {}; systemList = []; currentResults = []; rawResults = []; currentFilter = 'all'; currentSearch = '';
+  Object.keys(confirmedPairings).forEach(k => delete confirmedPairings[k]);
   loadedFiles = [];
   document.getElementById('hotelSlots').innerHTML = '';
   document.getElementById('systemSlots').innerHTML = '';
@@ -1521,6 +1580,50 @@ function rerunIfHasResults() {
   if (rawResults.length) applyIgnoreFlagsAndRender();
 }
 
+// ── CONFIRMED PAIRINGS ────────────────────────────────────────────────────────
+// Maps: rsvKey → partnerKey (bidirectional, set when user checks the box)
+const confirmedPairings = {};
+
+// ── SMART COMPATIBILITY ENGINE ────────────────────────────────────────────────
+// Only qualifies as "maybe compatible" if Arrival + Departure + Rooms ALL match exactly.
+// Meal plan mismatch is allowed and shown as info only.
+function scoreCompatibility(a, b) {
+  const matchTags = [];
+  const mismatchTags = [];
+
+  const arrivalMatch   = a.from  === b.from;
+  const departureMatch = a.till  === b.till;
+  const roomsMatch     = a.rooms === b.rooms;
+  const ma = (a.meal||'Room Only'), mb = (b.meal||'Room Only');
+  const mealMatch = ma === mb;
+
+  if (arrivalMatch)   matchTags.push('✓ Arrival');    else mismatchTags.push('✗ Arrival');
+  if (departureMatch) matchTags.push('✓ Departure');  else mismatchTags.push('✗ Departure');
+  if (roomsMatch)     matchTags.push('✓ Rooms');      else mismatchTags.push('✗ Rooms');
+  if (mealMatch)      matchTags.push('✓ Meal');       else mismatchTags.push('✗ Meal');
+
+  // Must match ALL three core fields to qualify
+  const qualifies = arrivalMatch && departureMatch && roomsMatch;
+  const score = qualifies ? (mealMatch ? 10 : 9) : 0;
+
+  return { score, matchTags, mismatchTags };
+}
+
+// For a given record, find up to 3 best candidates from the opposite pool
+// pool: array of { key, data: {from,till,rooms,meal,name/guest} }
+function findCompatible(record, pool, alreadyMatchedKeys) {
+  const candidates = [];
+  for (const { key, data } of pool) {
+    if (alreadyMatchedKeys.has(key)) continue;
+    const { score, matchTags, mismatchTags } = scoreCompatibility(record, data);
+    if (score > 0) {
+      candidates.push({ key, data, score, matchTags, mismatchTags });
+    }
+  }
+  candidates.sort((a, b) => b.score - a.score);
+  return candidates.slice(0, 3);
+}
+
 // ── COMPARISON ────────────────────────────────────────────────────────────────
 function runComparison() {
   // Process smart-loaded files first
@@ -1582,6 +1685,30 @@ function runComparison() {
   // Hotel vouchers with no matching system entry
   for (const [v, h] of Object.entries(hotelMap)) {
     if (!sysSet.has(v)) results.push({ status:'nosys', rsv:v, hotel:h, sys:null, diffs:[] });
+  }
+
+  // ── Smart Compatibility: find potential matches for unmatched entries ────────
+  const matchedSysKeys   = new Set(Object.keys(sysGrouped).filter(k => hotelMap[k]));
+  const matchedHotelKeys = new Set(Object.keys(hotelMap).filter(k => sysGrouped[k]));
+
+  // Pool of unmatched system entries (nohotel) for nosys to search against
+  const sysPool = results
+    .filter(r => r.status === 'nohotel')
+    .map(r => ({ key: r.sys.rsv, data: { from: r.sys.from, till: r.sys.till, rooms: r.sys.rooms, meal: r.sys.meal||'Room Only', name: r.sys.guest } }));
+
+  // Pool of unmatched hotel entries (nosys) for nohotel to search against
+  const hotelPool = results
+    .filter(r => r.status === 'nosys')
+    .map(r => ({ key: r.rsv, data: { from: r.hotel.from, till: r.hotel.till, rooms: r.hotel.rooms, meal: r.hotel.meal||'Room Only', name: r.hotel.name||r.rsv } }));
+
+  for (const r of results) {
+    if (r.status === 'nohotel') {
+      const rec = { from: r.sys.from, till: r.sys.till, rooms: r.sys.rooms, meal: r.sys.meal||'Room Only' };
+      r.maybeMatch = findCompatible(rec, hotelPool, matchedHotelKeys);
+    } else if (r.status === 'nosys') {
+      const rec = { from: r.hotel.from, till: r.hotel.till, rooms: r.hotel.rooms, meal: r.hotel.meal||'Room Only' };
+      r.maybeMatch = findCompatible(rec, sysPool, matchedSysKeys);
+    }
   }
 
   currentResults = results;
@@ -1779,6 +1906,59 @@ function buildItem(r) {
   if (htlId)  body += `<div class="meta-row">${t('confirmLabel')} <span>${htlId}</span></div>`;
   if (hotel)  body += `<div class="meta-row">${t('hotelLabel2')} <span>${hotel}</span></div>`;
 
+  // ── Maybe Compatible Box ──────────────────────────────────────────────────
+  if ((r.status === 'nohotel' || r.status === 'nosys') && r.maybeMatch !== undefined) {
+    const pairKey = rsv;
+    const confirmedPartner = confirmedPairings[pairKey];
+
+    if (r.maybeMatch.length === 0) {
+      body += `<div class="maybe-box" style="border-color:rgba(255,71,87,0.35);background:rgba(255,71,87,0.04);">
+        <div class="maybe-box-hdr" style="color:#ff4757;margin-bottom:0;">
+          <span class="maybe-icon">🔍</span>
+          <span>No Compatible Entry Found</span>
+          <span style="font-size:0.65rem;color:var(--muted);font-weight:400;margin-left:6px;">— Arrival, Departure & Rooms don't match any unmatched entry</span>
+        </div>
+      </div>`;
+    } else {
+    body += `<div class="maybe-box">
+      <div class="maybe-box-hdr">
+        <span class="maybe-icon">🔍</span>
+        <span>Maybe Compatible With:</span>
+      </div>
+      <div class="maybe-candidates">`;
+
+    for (const cand of r.maybeMatch) {
+      const isConfirmed = confirmedPairings[pairKey] === cand.key;
+      const candLabel = cand.key.startsWith('HID-')
+        ? 'Hotel ID: ' + cand.key.replace('HID-','')
+        : (r.status === 'nohotel' ? '🏨 Hotel #' : '🖥 System #') + cand.key;
+      const candName = cand.data.name || '';
+      const details  = `${cand.data.from} → ${cand.data.till} | ${cand.data.rooms} room(s) | ${cand.data.meal||'Room Only'}`;
+
+      body += `<div class="maybe-candidate ${isConfirmed ? 'confirmed' : ''}" id="maybecard-${pairKey}-${cand.key}" onclick="toggleCompatible(event,'${pairKey}','${cand.key}')">
+        <div class="maybe-chk-wrap"><div class="maybe-chk" id="maybechk-${pairKey}-${cand.key}"></div></div>
+        <div class="maybe-info">
+          <div class="maybe-rsv">${candLabel}${candName ? ' — ' + candName : ''}</div>
+          <div class="maybe-details">${details}</div>
+          <div class="maybe-score">
+            ${cand.matchTags.map(tag => `<span class="score-tag">${tag}</span>`).join('')}
+            ${cand.mismatchTags.map(tag => `<span class="score-tag no">${tag}</span>`).join('')}
+          </div>
+        </div>
+      </div>`;
+    }
+
+    const confirmedBannerTxt = confirmedPartner
+      ? `✓ Confirmed — linked to ${confirmedPartner.startsWith('HID-') ? 'Hotel ID: '+confirmedPartner.replace('HID-','') : (r.status==='nohotel'?'Hotel #':'System #')+confirmedPartner}`
+      : '';
+    body += `</div>
+      <div class="confirmed-banner ${confirmedPartner ? 'visible' : ''}" id="confirmedbanner-${pairKey}">
+        ✅ ${confirmedBannerTxt}
+      </div>
+    </div>`;
+  }
+}
+
   return `<div class="result-item st-${r.status}" data-rsv="${rsv}" data-name="${guest.toLowerCase()}">
     <div class="result-header" onclick="this.parentElement.classList.toggle('open')">
       <div class="rsv-num">${displayRsv}</div>
@@ -1801,6 +1981,60 @@ function copyRsvNum(e, num) {
     btn.classList.add('copied');
     setTimeout(() => { btn.textContent = '⎘'; btn.classList.remove('copied'); }, 1500);
   });
+}
+
+// ── COMPATIBLE PAIRING TOGGLE ─────────────────────────────────────────────────
+function toggleCompatible(e, pairKey, candKey) {
+  e.stopPropagation();
+  const isNowConfirmed = confirmedPairings[pairKey] !== candKey;
+
+  // Clear previous pairing for this key (and its old partner)
+  const oldPartner = confirmedPairings[pairKey];
+  if (oldPartner) {
+    delete confirmedPairings[oldPartner];
+    delete confirmedPairings[pairKey];
+    // Visually deconfirm old partner card
+    const oldCard = document.getElementById('maybecard-' + oldPartner + '-' + pairKey);
+    if (oldCard) oldCard.classList.remove('confirmed');
+    const oldChk  = document.getElementById('maybechk-' + oldPartner + '-' + pairKey);
+    if (oldChk) oldChk.style.cssText = '';
+    const oldBanner = document.getElementById('confirmedbanner-' + oldPartner);
+    if (oldBanner) { oldBanner.classList.remove('visible'); oldBanner.textContent = ''; }
+  }
+
+  // Also uncheck any other candidate for the same pairKey
+  document.querySelectorAll(`[id^="maybecard-${pairKey}-"]`).forEach(el => el.classList.remove('confirmed'));
+
+  if (isNowConfirmed) {
+    // Set new pairing (bidirectional)
+    confirmedPairings[pairKey] = candKey;
+    confirmedPairings[candKey] = pairKey;
+
+    // Update this card
+    const thisCard = document.getElementById('maybecard-' + pairKey + '-' + candKey);
+    if (thisCard) thisCard.classList.add('confirmed');
+
+    // Update reverse card if visible (partner's maybeBox)
+    const revCard = document.getElementById('maybecard-' + candKey + '-' + pairKey);
+    if (revCard) revCard.classList.add('confirmed');
+    const revChkEl = document.getElementById('maybechk-' + candKey + '-' + pairKey);
+    if (revChkEl) revChkEl.parentElement.parentElement.classList.add('confirmed');
+
+    // Update banners
+    const thisKeyLabel  = pairKey.startsWith('HID-') ? 'Hotel ID: '+pairKey.replace('HID-','') : '#'+pairKey;
+    const candKeyLabel  = candKey.startsWith('HID-') ? 'Hotel ID: '+candKey.replace('HID-','') : '#'+candKey;
+
+    const thisBanner = document.getElementById('confirmedbanner-' + pairKey);
+    if (thisBanner) {
+      thisBanner.innerHTML = '✅ Confirmed — linked to ' + candKeyLabel;
+      thisBanner.classList.add('visible');
+    }
+    const partnerBanner = document.getElementById('confirmedbanner-' + candKey);
+    if (partnerBanner) {
+      partnerBanner.innerHTML = '✅ Confirmed — linked to ' + thisKeyLabel;
+      partnerBanner.classList.add('visible');
+    }
+  }
 }
 
 function setFilter(f) { currentFilter=f; renderResults(); }
