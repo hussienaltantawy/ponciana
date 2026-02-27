@@ -1408,22 +1408,61 @@ function parseHotelText(text) {
 
   // TOP TABLE: datetime datetime VoucherNo (each match = 1 room)
   const topRe = /(\d{4}-\d{2}-\d{2})\s+\d{2}:\d{2}\s+(\d{4}-\d{2}-\d{2})\s+\d{2}:\d{2}\s+(\d{5,6})\b/g;
+  const topMatchedPositions = new Set();
   for (const m of text.matchAll(topRe)) {
     const [, a, d, v] = m;
     if (!result[v]) result[v] = { name:'', from:ymd(a), till:ymd(d), rooms:0, meal:'Room Only' };
     result[v].rooms++;
+    topMatchedPositions.add(m.index);
+  }
+
+  // TOP TABLE — NO-VOUCHER ROWS: same format but voucher field is blank/missing
+  // e.g. "10396  1238  DBL  Askant Travel  2026-02-27 14:00  2026-03-01 12:00     3  0  Askant Travel TA ... CONFIRMED"
+  // The hotel booking ID (5-digit, like 10396) appears earlier on the same line.
+  // We look for: <bookingID> ... <date HH:MM> <date HH:MM> NOT-followed-by-a-5-6-digit-voucher
+  // Key stored as "HID-<bookingID>" so they surface as "Not in System"
+  const topNoVoucherRe = /\b(\d{5})\b[^\n\r]*?(\d{4}-\d{2}-\d{2})\s+\d{2}:\d{2}\s+(\d{4}-\d{2}-\d{2})\s+\d{2}:\d{2}(?!\s+\d{5,6}\b)/g;
+  for (const m of text.matchAll(topNoVoucherRe)) {
+    // Skip if this position was already captured by the voucher regex
+    if (topMatchedPositions.has(m.index)) continue;
+    const [, hid, a, d] = m;
+    const key = 'HID-' + hid;
+    // Determine guest name: look for a name token between booking ID and first date
+    // The text between match start and second date group
+    const between = m[0].substring(0, m[0].indexOf(a));
+    const nameParts = between.replace(/\b\d+\b/g, ' ').replace(/\s+/g, ' ').trim();
+    const guestName = nameParts.length > 2 ? nameParts : ('Hotel Booking ' + hid);
+    if (!result[key]) result[key] = { name: guestName, from:ymd(a), till:ymd(d), rooms:0, meal:'Room Only' };
+    result[key].rooms++;
   }
 
   // BOTTOM TABLE: date-only date-only VoucherNo ... Askant Travel N TA [MealPlan] CONFIRMED
   // Capture meal plan (group 5) between "TA" and "CONFIRMED" or end-of-line
   const botRe = /(\d{4}-\d{2}-\d{2})\s+(\d{4}-\d{2}-\d{2})\s+(\d{5,6})\b[^\n\r]*?Askant\s+Travel\s*(\d+)\s+TA(?:\s+([A-Za-z][A-Za-z &\/]+?))?(?:\s+(?:CONFIRMED|ON HOLD)|\s*$)/gi;
+  const botMatchedVouchers = new Set();
   for (const m of text.matchAll(botRe)) {
     const [, a, d, v, r, mealRaw] = m;
+    botMatchedVouchers.add(m.index);
     const n = parseInt(r, 10);
     const meal = normalizeMeal(mealRaw || 'Room Only');
     if (!result[v]) result[v] = { name:'', from:ymd(a), till:ymd(d), rooms:0, meal };
     else if (!result[v].meal || result[v].meal === 'Room Only') result[v].meal = meal;
     result[v].rooms += n;
+  }
+
+  // BOTTOM TABLE — NO-VOUCHER ROWS: booking ID present but voucher field blank
+  // e.g. "10396 1238 DBL Askant Travel 2026-02-27 2026-03-01  3 0 Askant Travel TA Askant Travel Room Only CONFIRMED"
+  const botNoVoucherRe = /\b(\d{5})\b[^\n\r]*?(\d{4}-\d{2}-\d{2})\s+(\d{4}-\d{2}-\d{2})(?!\s+\d{5,6}\b)[^\n\r]*?Askant\s+Travel\s*(\d+)\s+TA(?:\s+([A-Za-z][A-Za-z &\/]+?))?(?:\s+(?:CONFIRMED|ON HOLD)|\s*$)/gi;
+  for (const m of text.matchAll(botNoVoucherRe)) {
+    if (botMatchedVouchers.has(m.index)) continue;
+    const [, hid, a, d, r, mealRaw] = m;
+    const key = 'HID-' + hid;
+    // Don't double-count if already added by topNoVoucherRe
+    if (result[key]) continue;
+    const n = parseInt(r, 10);
+    if (isNaN(n) || n <= 0 || n > 500) continue;
+    const meal = normalizeMeal(mealRaw || 'Room Only');
+    result[key] = { name: 'Hotel Booking ' + hid, from: ymd(a), till: ymd(d), rooms: n, meal };
   }
 
   // NO-VOUCHER GROUP ENTRIES: hotel room ID only, no 5-6 digit voucher number
