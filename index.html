@@ -1334,6 +1334,9 @@ function wireSlot(div, type) {
 }
 
 // ── FILE HANDLING ─────────────────────────────────────────────────────────────
+// Slot-card uploads: store into loadedFiles (same as smart-drop) so
+// runComparison() always works from a single unified source and never
+// accumulates stale data across multiple clicks.
 async function handleFile(file, type) {
   let text = '';
   if (file.name.toLowerCase().endsWith('.pdf')) {
@@ -1342,16 +1345,16 @@ async function handleFile(file, type) {
   } else {
     text = await file.text();
   }
+  // Remove any existing entry for this file name + type to avoid duplicates
+  const existingIdx = loadedFiles.findIndex(lf => lf.file.name === file.name && lf.type === type);
+  if (existingIdx !== -1) loadedFiles.splice(existingIdx, 1);
+  loadedFiles.push({ file, type, text });
   if (type === 'hotel') {
     const parsed = parseHotelText(text);
-    for (const [v, d] of Object.entries(parsed)) {
-      hotelMap[v] = hotelMap[v] ? { ...hotelMap[v], rooms: hotelMap[v].rooms + d.rooms } : d;
-    }
-    toast('Hotel file parsed: ' + Object.keys(parsed).length + ' voucher(s)');
+    toast('Hotel file ready: ' + Object.keys(parsed).length + ' voucher(s) — click Run Comparison');
   } else {
     const parsed = parseSystemText(text);
-    systemList.push(...parsed);
-    toast('System file parsed: ' + parsed.length + ' reservation(s)');
+    toast('System file ready: ' + parsed.length + ' reservation(s) — click Run Comparison');
   }
 }
 
@@ -1665,6 +1668,10 @@ function findCompatible(record, pool, alreadyMatchedKeys) {
 
 // ── COMPARISON ────────────────────────────────────────────────────────────────
 function runComparison() {
+  // ── RESET STATE — always start fresh so clicking Run multiple times is idempotent ──
+  hotelMap   = {};
+  systemList = [];
+
   // Process smart-loaded files first
   for (const lf of loadedFiles) {
     if (lf.type === 'hotel') {
@@ -1891,14 +1898,7 @@ function renderResults() {
   if (currentSearch) handleSearch(currentSearch, false);
 }
 
-function sysGrouped() {
-  const g = {};
-  for (const s of systemList) {
-    if (!g[s.rsv]) g[s.rsv] = {...s};
-    else g[s.rsv].rooms += s.rooms;
-  }
-  return g;
-}
+// (sysGrouped helper removed — logic inlined in runComparison)
 
 function buildItem(r) {
   const bm = {match:'bd-match',diff:'bd-diff',nohotel:'bd-nohotel',nosys:'bd-nosys'};
@@ -2799,7 +2799,7 @@ window.addEventListener('load', () => {
   <div class="pf-name">MR. <span>HUSSIEN ALTANTAWY</span></div>
   <div class="pf-contacts" dir="ltr" style="unicode-bidi:embed;">
     <div class="pf-contact" dir="ltr">📱 <a href="tel:+201281806461" dir="ltr">+2 012 81 80 64 61</a></div>
-    <div class="pf-contact" dir="ltr">📧 <a href="mailto:hussien.altantawy@yahoo.com" dir="ltr">HUSSIEN.ALTANTAWY@YAHOO.COM</a></div>
+    <div class="pf-contact" dir="ltr">📧 <a href="mailto:HUSSIEN.ALTANTAWY@YAHOO.COM" dir="ltr" style="text-transform:uppercase;font-weight:600;letter-spacing:0.5px;">HUSSIEN.ALTANTAWY@YAHOO.COM</a></div>
   </div>
 </div>
 
